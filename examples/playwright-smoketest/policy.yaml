@@ -1,0 +1,7 @@
+network: false
+fs_read: []
+fs_write: []
+exec_allowlist:
+  - node
+domains_allowlist: []
+

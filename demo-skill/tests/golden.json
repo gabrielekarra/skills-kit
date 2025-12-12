@@ -1,0 +1,14 @@
+[
+  {
+    "name": "echo",
+    "input": {
+      "hello": "world"
+    },
+    "expected": {
+      "ok": true,
+      "echo": {
+        "hello": "world"
+      }
+    }
+  }
+]

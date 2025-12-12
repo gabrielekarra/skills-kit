@@ -1,0 +1,39 @@
+[
+  {
+    "name": "happy-path",
+    "input": {
+      "url": "https://example.com",
+      "username": "u",
+      "password": "p"
+    },
+    "expected": {
+      "ok": true,
+      "steps": [
+        {
+          "action": "goto",
+          "url": "https://example.com"
+        },
+        {
+          "action": "fill",
+          "selector": "#username",
+          "value": "u"
+        },
+        {
+          "action": "fill",
+          "selector": "#password",
+          "value": "***"
+        },
+        {
+          "action": "click",
+          "selector": "button[type=submit]"
+        },
+        {
+          "action": "assert",
+          "selector": "#dashboard"
+        }
+      ],
+      "screenshotPath": "",
+      "errors": []
+    }
+  }
+]

@@ -1,0 +1,15 @@
+[
+  {
+    "name": "flags-eval",
+    "input": { "diff": "+ const x = eval(userInput)\n+ console.log(x)\n" },
+    "expected": {
+      "risks": [
+        { "level": "high", "reason": "eval() usage" },
+        { "level": "low", "reason": "debug logging" }
+      ],
+      "suggestions": [],
+      "summary": "Found 2 risk(s)."
+    }
+  }
+]
+

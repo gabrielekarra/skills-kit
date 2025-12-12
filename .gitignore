@@ -1,0 +1,8 @@
+node_modules
+dist
+**/test/**/*.js
+**/test/**/*.d.ts
+.pnpm-store
+.DS_Store
+*.log
+*.zip
