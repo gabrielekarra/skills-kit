@@ -226,6 +226,116 @@ All bundles include Python and JavaScript integration examples.
 
 ---
 
+## Using Skills with LLMs
+
+### Complete Workflow
+
+1. **Create and bundle your skill:**
+
+```bash
+# Create a skill
+skills-kit create "Validate email addresses" --out ./email-validator
+
+# Test it locally
+skills-kit test ./email-validator
+
+# Bundle for OpenAI
+skills-kit bundle ./email-validator --target openai
+
+# Extract the bundle
+cd email-validator
+unzip email-validator-openai.zip -d openai-bundle
+```
+
+2. **Integrate with OpenAI (Python):**
+
+```python
+import openai
+import json
+import subprocess
+
+# Load the tool definition
+with open('openai-bundle/adapters/openai/tool.json') as f:
+    tool_def = json.load(f)
+
+# Use with ChatGPT
+client = openai.OpenAI()
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {"role": "user", "content": "Validate test@example.com"}
+    ],
+    tools=[tool_def],
+    tool_choice="auto"
+)
+
+# If GPT calls the tool, execute the skill
+if response.choices[0].message.tool_calls:
+    tool_call = response.choices[0].message.tool_calls[0]
+    args = json.loads(tool_call.function.arguments)
+
+    # Execute the skill
+    result = subprocess.run(
+        ['node', 'scripts/run.cjs'],
+        input=json.dumps(args),
+        capture_output=True,
+        text=True,
+        cwd='openai-bundle'
+    )
+
+    output = json.loads(result.stdout)
+    print(f"Valid: {output['valid']}, Domain: {output['domain']}")
+```
+
+3. **Integrate with OpenAI (JavaScript):**
+
+```javascript
+import OpenAI from 'openai';
+import fs from 'fs';
+import { spawn } from 'child_process';
+
+// Load the tool definition
+const toolDef = JSON.parse(
+  fs.readFileSync('openai-bundle/adapters/openai/tool.json', 'utf8')
+);
+
+// Use with ChatGPT
+const openai = new OpenAI();
+const response = await openai.chat.completions.create({
+  model: 'gpt-4',
+  messages: [
+    { role: 'user', content: 'Validate test@example.com' }
+  ],
+  tools: [toolDef],
+  tool_choice: 'auto'
+});
+
+// If GPT calls the tool, execute the skill
+if (response.choices[0].message.tool_calls) {
+  const toolCall = response.choices[0].message.tool_calls[0];
+  const args = JSON.parse(toolCall.function.arguments);
+
+  // Execute the skill
+  const proc = spawn('node', ['scripts/run.cjs'], {
+    cwd: 'openai-bundle'
+  });
+
+  proc.stdin.write(JSON.stringify(args));
+  proc.stdin.end();
+
+  let output = '';
+  proc.stdout.on('data', (data) => output += data);
+  proc.stdout.on('end', () => {
+    const result = JSON.parse(output);
+    console.log(`Valid: ${result.valid}, Domain: ${result.domain}`);
+  });
+}
+```
+
+**The same pattern works for Gemini, Claude, and other LLMs.** Each bundle includes complete integration examples in the `usage.md` file.
+
+---
+
 ## Architecture
 
 ```
