@@ -337,12 +337,4 @@ Copyright (c) 2024 skills-kit contributors
 
 ---
 
-## Get Started
-
-```bash
-npm install -g @skills-kit/cli
-export ANTHROPIC_API_KEY=sk-ant-...
-skills-kit create "Your first skill" --out ./my-skill
-```
-
 ⭐ Star this repo if you believe in portable AI skills
