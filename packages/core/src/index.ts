@@ -6,3 +6,7 @@ export { runGoldenTests } from "./testHarness.js";
 export { runEntrypoint } from "./testHarness.js";
 export { bundleSkill } from "./bundle.js";
 export { safeResolve } from "./utils/pathSafe.js";
+export * from "./adapters/openai.js";
+export * from "./adapters/generic.js";
+export * from "./adapters/claude.js";
+export * from "./adapters/gemini.js";

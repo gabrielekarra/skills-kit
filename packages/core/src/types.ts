@@ -8,6 +8,7 @@ export type SkillFrontmatter = {
   inputs?: unknown;
   outputs?: unknown;
   capabilities?: string[];
+  targets?: string[];
   policy?: unknown;
   tests?: unknown;
   [key: string]: unknown;

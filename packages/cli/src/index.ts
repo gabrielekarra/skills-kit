@@ -7,6 +7,8 @@ import { testCommand } from "./commands/test.js";
 import { bundleCommand } from "./commands/bundle.js";
 import { createCommand } from "./commands/create.js";
 import { refineCommand } from "./commands/refine.js";
+import { runCommand } from "./commands/run.js";
+import { runDoctor } from "./commands/doctor.js";
 
 const program = new Command();
 
@@ -59,10 +61,16 @@ program
 program
   .command("bundle")
   .argument("<dir>", "skill directory")
-  .requiredOption("--target <target>", "claude|generic")
+  .requiredOption("--target <target>", "claude|openai|gemini|generic")
   .description("bundle a skill into zip")
   .action(async (dir: string, opts: { target?: string }) => {
-    const target = opts.target === "claude" ? "claude" : "generic";
+    const targetMap: Record<string, "claude" | "openai" | "gemini" | "generic"> = {
+      claude: "claude",
+      openai: "openai",
+      gemini: "gemini",
+      generic: "generic"
+    };
+    const target = targetMap[opts.target || "generic"] || "generic";
     const out = await bundleCommand(dir, target);
     console.log(chalk.green(`Bundle written to ${out}`));
   });
@@ -71,17 +79,23 @@ program
   .command("create")
   .argument("<description>", "natural language description")
   .requiredOption("--out <dir>", "output directory")
-  .option("--model <model>", "anthropic model id")
-  .option("--provider <provider>", "mock|anthropic", "mock")
-  .description("create a new skill via LLM")
+  .option("--model <model>", "anthropic model id (default: claude-sonnet-4-5-latest)")
+  .description("create a new skill using Claude AI")
   .action(
     async (
       description: string,
-      opts: { out: string; model?: string; provider?: string }
+      opts: { out: string; model?: string }
     ) => {
       try {
-        const provider = opts.provider === "anthropic" ? "anthropic" : "mock";
-        const res = await createCommand(description, opts.out, opts.model, provider);
+        if (!process.env.ANTHROPIC_API_KEY) {
+          console.error(chalk.red("Error: ANTHROPIC_API_KEY environment variable is not set."));
+          console.error(chalk.yellow("\nTo use the create command, you need an Anthropic API key:"));
+          console.error(chalk.white("1. Get your API key from https://console.anthropic.com/"));
+          console.error(chalk.white("2. Set it: export ANTHROPIC_API_KEY=sk-ant-..."));
+          console.error(chalk.white("3. Run the command again\n"));
+          process.exit(1);
+        }
+        const res = await createCommand(description, opts.out, opts.model, "anthropic");
         if (res.ok) {
           console.log(chalk.green(`Create OK (${res.iterations} repair iterations)`));
           return;
@@ -112,18 +126,24 @@ program
   .command("refine")
   .argument("<dir>", "skill directory")
   .argument("<change>", "requested change")
-  .option("--model <model>", "anthropic model id")
-  .option("--provider <provider>", "mock|anthropic", "mock")
-  .description("refine an existing skill via LLM")
+  .option("--model <model>", "anthropic model id (default: claude-sonnet-4-5-latest)")
+  .description("refine an existing skill using Claude AI")
   .action(
     async (
       dir: string,
       change: string,
-      opts: { model?: string; provider?: string }
+      opts: { model?: string }
     ) => {
       try {
-        const provider = opts.provider === "anthropic" ? "anthropic" : "mock";
-        const res = await refineCommand(dir, change, opts.model, provider);
+        if (!process.env.ANTHROPIC_API_KEY) {
+          console.error(chalk.red("Error: ANTHROPIC_API_KEY environment variable is not set."));
+          console.error(chalk.yellow("\nTo use the refine command, you need an Anthropic API key:"));
+          console.error(chalk.white("1. Get your API key from https://console.anthropic.com/"));
+          console.error(chalk.white("2. Set it: export ANTHROPIC_API_KEY=sk-ant-..."));
+          console.error(chalk.white("3. Run the command again\n"));
+          process.exit(1);
+        }
+        const res = await refineCommand(dir, change, opts.model, "anthropic");
         if (res.ok) {
           console.log(chalk.green(`Refine OK (${res.iterations} repair iterations)`));
           return;
@@ -149,5 +169,52 @@ program
       }
     }
   );
+
+program
+  .command("run")
+  .argument("<dir>", "skill directory")
+  .option("--input <file>", "input JSON file")
+  .option("--json <json>", "inline JSON input")
+  .description("execute a skill")
+  .action(async (dir: string, opts: { input?: string; json?: string }) => {
+    try {
+      const result = await runCommand(dir, opts);
+      if (result.ok) {
+        console.log(JSON.stringify(result.output, null, 2));
+        process.exit(0);
+      }
+      console.error(chalk.red(`Error: ${result.error}`));
+      if (result.logs) {
+        console.error(chalk.gray(result.logs));
+      }
+      process.exit(1);
+    } catch (err) {
+      console.error(chalk.red(err instanceof Error ? err.message : String(err)));
+      process.exit(1);
+    }
+  });
+
+program
+  .command("doctor")
+  .description("check system configuration")
+  .action(async () => {
+    console.log(chalk.blue("Running diagnostics...\n"));
+    const result = await runDoctor();
+
+    for (const check of result.checks) {
+      const icon = check.status === "ok" ? "✓" : check.status === "warning" ? "⚠" : "✗";
+      const color = check.status === "ok" ? chalk.green : check.status === "warning" ? chalk.yellow : chalk.red;
+      console.log(color(`${icon} ${check.name}: ${check.message}`));
+    }
+
+    console.log();
+    if (result.ok) {
+      console.log(chalk.green("All required checks passed."));
+      process.exit(0);
+    } else {
+      console.log(chalk.red("Some checks failed. Please fix errors above."));
+      process.exit(1);
+    }
+  });
 
 void program.parseAsync(process.argv);

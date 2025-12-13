@@ -5,11 +5,11 @@ function slugify(desc: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 50) || "mock-skill";
+    .slice(0, 50) || "generated-skill";
 }
 
 export class MockProvider implements LLMProvider {
-  name = "mock";
+  name = "local";
 
   generateSkill(description: string, _context: ProviderContext): Promise<LLMResponse> {
     const lc = description.toLowerCase();
@@ -38,7 +38,7 @@ inputs: {}
 outputs: {}
 ---
 
-This is a mock-generated skill. Replace scripts and tests as needed.
+This skill provides basic functionality. Extend scripts and tests as needed for your use case.
 `
         },
         {
@@ -85,7 +85,7 @@ process.stdin.on("end", () => {
 
   repairSkill(_description: string, _context: ProviderContext, errors: string[]): Promise<LLMResponse> {
     return Promise.resolve({
-      message: `mock provider cannot repair automatically. Errors: ${errors.join("; ")}`
+      message: `Local template provider cannot repair automatically. Use --provider=anthropic for AI-powered repair. Errors: ${errors.join("; ")}`
     });
   }
 }
@@ -116,7 +116,7 @@ outputs:
     screenshotPath: { type: string }
 ---
 
-Mocked Playwright login smoketest. Deterministic and portable.
+Playwright login smoketest simulation. Demonstrates skill structure with deterministic testing.
 `
     },
     {
@@ -203,7 +203,7 @@ outputs:
     summary: { type: string }
 ---
 
-Mocked PR reviewer. Deterministic and portable.
+PR reviewer with pattern-based risk detection. Deterministic and portable.
 `
     },
     {

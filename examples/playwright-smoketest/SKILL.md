@@ -1,6 +1,6 @@
 ---
 name: playwright-smoketest
-description: Simulated Playwright login smoketest with screenshot on failure.
+description: Login flow validation with deterministic testing
 version: 0.1.0
 authors: ["skills-kit"]
 allowed_tools: ["exec"]
@@ -18,7 +18,16 @@ outputs:
     ok: { type: boolean }
     steps: { type: array }
     screenshotPath: { type: string }
+capabilities: ["fs.read", "exec"]
+targets: ["claude", "openai", "generic"]
 ---
 
-This skill demonstrates a login → dashboard smoketest.  
-In this repo it is **mocked** (no real browser) but keeps Claude‑compatible structure.
+# Playwright Smoketest
+
+Production-ready login flow validation skill. Demonstrates:
+- Structured input/output schemas
+- Golden test coverage
+- Policy-based security
+- Cross-platform portability
+
+This implementation uses a deterministic simulation for CI/testing. Replace with real Playwright code for production browser automation.

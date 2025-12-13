@@ -1,0 +1,87 @@
+[
+  {
+    "name": "valid_email_basic",
+    "input": {
+      "email": "user@example.com"
+    },
+    "expected": {
+      "ok": true,
+      "result": {
+        "valid": true,
+        "email": "user@example.com",
+        "localPart": "user",
+        "domain": "example.com",
+        "formatValid": true,
+        "issues": []
+      }
+    }
+  },
+  {
+    "name": "invalid_email_no_at",
+    "input": {
+      "email": "userexample.com"
+    },
+    "expected": {
+      "ok": true,
+      "result": {
+        "valid": false,
+        "email": "userexample.com",
+        "formatValid": false,
+        "issues": [
+          "Missing @ symbol"
+        ]
+      }
+    }
+  },
+  {
+    "name": "invalid_email_multiple_at",
+    "input": {
+      "email": "user@@example.com"
+    },
+    "expected": {
+      "ok": true,
+      "result": {
+        "valid": false,
+        "email": "user@@example.com",
+        "formatValid": false,
+        "issues": [
+          "Multiple @ symbols"
+        ]
+      }
+    }
+  },
+  {
+    "name": "valid_email_with_subdomain",
+    "input": {
+      "email": "john.doe@mail.example.com"
+    },
+    "expected": {
+      "ok": true,
+      "result": {
+        "valid": true,
+        "email": "john.doe@mail.example.com",
+        "localPart": "john.doe",
+        "domain": "mail.example.com",
+        "formatValid": true,
+        "issues": []
+      }
+    }
+  },
+  {
+    "name": "invalid_email_empty",
+    "input": {
+      "email": ""
+    },
+    "expected": {
+      "ok": true,
+      "result": {
+        "valid": false,
+        "email": "",
+        "formatValid": false,
+        "issues": [
+          "Email address is empty"
+        ]
+      }
+    }
+  }
+]

@@ -61,6 +61,7 @@ function normalizeFrontmatter(raw: unknown): SkillFrontmatter {
     "allowed_tools",
     "entrypoints",
     "capabilities",
+    "targets",
     "inputs",
     "outputs",
     "policy",
@@ -95,6 +96,9 @@ function normalizeFrontmatter(raw: unknown): SkillFrontmatter {
 
   const capArr = asStringArray(raw["capabilities"]);
   if (capArr) fm.capabilities = capArr;
+
+  const targetsArr = asStringArray(raw["targets"]);
+  if (targetsArr) fm.targets = targetsArr;
 
   return fm;
 }

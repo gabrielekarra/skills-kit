@@ -6,7 +6,7 @@ const API_URL = "https://api.anthropic.com/v1/messages";
 function systemPromptBase() {
   return [
     "You generate repo files for the skills-kit project.",
-    "You MUST output ONLY valid JSON. No prose. No markdown. No code fences.",
+    "CRITICAL: You MUST output ONLY raw JSON. No explanations. No markdown. No code blocks. No backticks. Just pure JSON starting with { or [.",
     "Never use absolute paths or .. segments. Paths are relative to the skill root.",
     "Only allowed locations: SKILL.md, policy.yaml, scripts/, tests/, resources/.",
     "The entrypoint MUST be scripts/run.cjs and that file MUST exist.",
@@ -108,32 +108,41 @@ function stripJsonFences(text: string): string {
 
 function tryParseJson(text: string): { ok: true; value: unknown } | { ok: false; error: string } {
   const t = stripJsonFences(text);
+
+  // Try direct parse first
   try {
     return { ok: true, value: JSON.parse(t) as unknown };
   } catch {
-    // best-effort extraction
-    const braceStart = t.indexOf("{");
-    const braceEnd = t.lastIndexOf("}");
-    if (braceStart !== -1 && braceEnd !== -1 && braceEnd > braceStart) {
-      const sub = t.slice(braceStart, braceEnd + 1);
-      try {
-        return { ok: true, value: JSON.parse(sub) as unknown };
-      } catch {
-        // ignore parse error
-      }
-    }
-    const arrStart = t.indexOf("[");
-    const arrEnd = t.lastIndexOf("]");
-    if (arrStart !== -1 && arrEnd !== -1 && arrEnd > arrStart) {
-      const sub = t.slice(arrStart, arrEnd + 1);
-      try {
-        return { ok: true, value: JSON.parse(sub) as unknown };
-      } catch {
-        // ignore parse error
-      }
-    }
-    return { ok: false, error: "Invalid JSON" };
+    // Ignore and continue to extraction
   }
+
+  // Try to extract JSON object
+  const braceStart = t.indexOf("{");
+  const braceEnd = t.lastIndexOf("}");
+  if (braceStart !== -1 && braceEnd !== -1 && braceEnd > braceStart) {
+    const sub = t.slice(braceStart, braceEnd + 1);
+    try {
+      return { ok: true, value: JSON.parse(sub) as unknown };
+    } catch {
+      // Continue to array extraction
+    }
+  }
+
+  // Try to extract JSON array
+  const arrStart = t.indexOf("[");
+  const arrEnd = t.lastIndexOf("]");
+  if (arrStart !== -1 && arrEnd !== -1 && arrEnd > arrStart) {
+    const sub = t.slice(arrStart, arrEnd + 1);
+    try {
+      return { ok: true, value: JSON.parse(sub) as unknown };
+    } catch {
+      // Continue to final error
+    }
+  }
+
+  // Log first 200 chars for debugging
+  const preview = t.slice(0, 200).replace(/\n/g, " ");
+  return { ok: false, error: `Invalid JSON. Preview: ${preview}...` };
 }
 
 function parseWritesPayload(raw: unknown): LLMWrite[] {
@@ -179,20 +188,34 @@ async function callAnthropicText(call: AnthropicCall): Promise<string> {
 }
 
 async function callJsonWithRetry(call: AnthropicCall): Promise<unknown> {
+  // First attempt
   const firstText = await callAnthropicText(call);
   const firstParsed = tryParseJson(firstText);
   if (firstParsed.ok) return firstParsed.value;
 
+  // Second attempt with stricter instructions
   const strict: AnthropicCall = {
     ...call,
-    system: `${call.system} STRICT JSON ONLY.`,
-    user: `${call.user}\n\nSTRICT JSON ONLY. Output ONLY valid JSON. No backticks, no prose.`,
+    system: "You are a JSON-only generator. Output ONLY raw JSON with no additional text.",
+    user: `${call.user}\n\nIMPORTANT: Return ONLY the JSON object or array. Start your response with { or [. No other text before or after.`,
     max_tokens: call.max_tokens
   };
   const secondText = await callAnthropicText(strict);
   const secondParsed = tryParseJson(secondText);
   if (secondParsed.ok) return secondParsed.value;
-  throw new Error(`Anthropic output was not JSON (${secondParsed.error})`);
+
+  // Third attempt with explicit JSON request
+  const veryStrict: AnthropicCall = {
+    ...call,
+    system: "Output raw JSON only. Nothing else.",
+    user: `${call.user}\n\nReturn JSON starting with {`,
+    max_tokens: call.max_tokens
+  };
+  const thirdText = await callAnthropicText(veryStrict);
+  const thirdParsed = tryParseJson(thirdText);
+  if (thirdParsed.ok) return thirdParsed.value;
+
+  throw new Error(`Failed to get valid JSON after 3 attempts. Last error: ${thirdParsed.error}`);
 }
 
 export class AnthropicProvider implements LLMProvider {
@@ -222,11 +245,11 @@ export class AnthropicProvider implements LLMProvider {
       "- If Playwright is requested, include tests.golden case for missing dependency output:",
       '  expected.ok=false and expected.error.code="MISSING_DEP".',
       "",
-      "Output JSON only."
+      "IMPORTANT: Start your response with { and output only the JSON object. No other text."
     ].join("\n");
 
     const raw = await callJsonWithRetry({
-      model: context.model ?? "claude-3-5-sonnet-latest",
+      model: context.model ?? "claude-sonnet-4-5-latest",
       system,
       user,
       max_tokens: 1400
@@ -256,11 +279,11 @@ export class AnthropicProvider implements LLMProvider {
       "- If Playwright is required, implement missing-dependency branch with ok:false and error.code=MISSING_DEP, without crashing.",
       "- tests/golden.json must include a portable passing test for missing-dependency branch (no Playwright installed).",
       "",
-      "Return JSON only: {\"writes\":[{\"path\":\"...\",\"content\":\"...\"}]}."
+      "IMPORTANT: Start your response with { and return ONLY the JSON object with writes array. No other text."
     ].join("\n");
 
     const raw = await callJsonWithRetry({
-      model: context.model ?? "claude-3-5-sonnet-latest",
+      model: context.model ?? "claude-sonnet-4-5-latest",
       system,
       user,
       max_tokens: 2600
@@ -296,12 +319,12 @@ export class AnthropicProvider implements LLMProvider {
       "Test output:",
       testLines,
       "",
-      "Return ONLY JSON writes to fix lint/test failures:",
-      "{\"writes\":[{\"path\":\"...\",\"content\":\"...\"}]}"
+      "IMPORTANT: Return ONLY the JSON object starting with {",
+      "Format: {\"writes\":[{\"path\":\"...\",\"content\":\"...\"}]}"
     ].join("\n");
 
     const raw = await callJsonWithRetry({
-      model: context.model ?? "claude-3-5-sonnet-latest",
+      model: context.model ?? "claude-sonnet-4-5-latest",
       system,
       user,
       max_tokens: 2600
@@ -327,11 +350,11 @@ export class AnthropicProvider implements LLMProvider {
       "Errors:",
       errors.join("\n"),
       "",
-      "Return ONLY JSON writes to fix these errors:",
-      "{\"writes\":[{\"path\":\"...\",\"content\":\"...\"}]}"
+      "IMPORTANT: Return ONLY the JSON object starting with {",
+      "Format: {\"writes\":[{\"path\":\"...\",\"content\":\"...\"}]}"
     ].join("\n");
     const raw = await callJsonWithRetry({
-      model: context.model ?? "claude-3-5-sonnet-latest",
+      model: context.model ?? "claude-sonnet-4-5-latest",
       system,
       user,
       max_tokens: 2000
