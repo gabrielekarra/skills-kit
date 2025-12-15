@@ -249,7 +249,7 @@ export class AnthropicProvider implements LLMProvider {
     ].join("\n");
 
     const raw = await callJsonWithRetry({
-      model: context.model ?? "claude-sonnet-4-5-latest",
+      model: context.model ?? "claude-sonnet-4-20250514",
       system,
       user,
       max_tokens: 1400
@@ -283,7 +283,7 @@ export class AnthropicProvider implements LLMProvider {
     ].join("\n");
 
     const raw = await callJsonWithRetry({
-      model: context.model ?? "claude-sonnet-4-5-latest",
+      model: context.model ?? "claude-sonnet-4-20250514",
       system,
       user,
       max_tokens: 2600
@@ -324,7 +324,7 @@ export class AnthropicProvider implements LLMProvider {
     ].join("\n");
 
     const raw = await callJsonWithRetry({
-      model: context.model ?? "claude-sonnet-4-5-latest",
+      model: context.model ?? "claude-sonnet-4-20250514",
       system,
       user,
       max_tokens: 2600
@@ -354,7 +354,7 @@ export class AnthropicProvider implements LLMProvider {
       "Format: {\"writes\":[{\"path\":\"...\",\"content\":\"...\"}]}"
     ].join("\n");
     const raw = await callJsonWithRetry({
-      model: context.model ?? "claude-sonnet-4-5-latest",
+      model: context.model ?? "claude-sonnet-4-20250514",
       system,
       user,
       max_tokens: 2000
