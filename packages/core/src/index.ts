@@ -10,3 +10,6 @@ export * from "./adapters/openai.js";
 export * from "./adapters/generic.js";
 export * from "./adapters/claude.js";
 export * from "./adapters/gemini.js";
+export * from "./compression.js";
+export * from "./stream-manager.js";
+export * from "./file-utils.js";

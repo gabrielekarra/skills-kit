@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { matchesMimeType, parseSize } from "@skills-kit/core";
 
 type YAMLSchemaProperty = {
   type: string;
@@ -7,6 +8,12 @@ type YAMLSchemaProperty = {
   default?: unknown;
   items?: YAMLSchemaProperty;
   properties?: Record<string, YAMLSchemaProperty>;
+  // File-specific properties
+  accept?: string[];
+  maxSize?: string;
+  compression?: string;
+  streaming?: boolean;
+  maxItems?: number;
 };
 
 type YAMLSchema = Record<string, YAMLSchemaProperty>;
@@ -37,10 +44,21 @@ function convertProperty(prop: YAMLSchemaProperty): z.ZodTypeAny {
       schema = z.boolean();
       break;
 
+    case "file":
+      schema = createFileSchema(prop);
+      break;
+
     case "array":
       if (prop.items) {
         const itemSchema = convertProperty(prop.items);
-        schema = z.array(itemSchema);
+        const arraySchema = z.array(itemSchema);
+
+        // Handle maxItems for arrays
+        if (prop.maxItems && typeof prop.maxItems === "number") {
+          schema = arraySchema.max(prop.maxItems);
+        } else {
+          schema = arraySchema;
+        }
       } else {
         schema = z.array(z.any());
       }
@@ -76,6 +94,59 @@ function convertProperty(prop: YAMLSchemaProperty): z.ZodTypeAny {
   if (prop.required === false || (prop.required === undefined && prop.default === undefined)) {
     schema = schema.optional();
   }
+
+  return schema;
+}
+
+/**
+ * Create Zod schema for file input with validation
+ */
+function createFileSchema(prop: YAMLSchemaProperty): z.ZodTypeAny {
+  // Base file input schema
+  const baseSchema = z.object({
+    filename: z.string(),
+    mimeType: z.string(),
+    data: z.string().optional(), // base64, not present in streaming mode
+    size: z.number(),
+    originalSize: z.number(),
+    compression: z.enum(["none", "gzip", "brotli"]).default("none"),
+    streaming: z.boolean().default(false),
+    streamPath: z.string().optional(), // Present only in streaming mode
+    streamId: z.string().optional() // Present only in streaming mode
+  });
+
+  let schema: z.ZodTypeAny = baseSchema;
+
+  // Add MIME type validation
+  if (prop.accept && Array.isArray(prop.accept) && prop.accept.length > 0) {
+    schema = schema.refine(
+      (file: any) => matchesMimeType(file.mimeType, prop.accept as string[]),
+      {
+        message: `File must be one of: ${prop.accept.join(", ")}`
+      }
+    );
+  }
+
+  // Add size validation
+  if (prop.maxSize && typeof prop.maxSize === "string") {
+    const maxBytes = parseSize(prop.maxSize);
+    schema = schema.refine((file: any) => file.originalSize <= maxBytes, {
+      message: `File must be smaller than ${prop.maxSize}`
+    });
+  }
+
+  // Validate streaming consistency
+  schema = schema.refine(
+    (file: any) => {
+      if (file.streaming) {
+        return file.streamPath && file.streamId && !file.data;
+      }
+      return !!file.data;
+    },
+    {
+      message: "Streaming files must have streamPath/streamId, non-streaming must have data"
+    }
+  );
 
   return schema;
 }
