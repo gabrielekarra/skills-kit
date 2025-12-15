@@ -1,4 +1,4 @@
-import { AnthropicProvider, MockProvider, refineSkill } from "@skills-kit/agent";
+import { AnthropicProvider, refineSkill } from "@skills-kit/agent";
 import path from "node:path";
 
 function assertNoTraversal(p: string) {
@@ -9,13 +9,9 @@ function assertNoTraversal(p: string) {
 export async function refineCommand(
   dir: string,
   change: string,
-  model?: string,
-  providerName: "mock" | "anthropic" = "mock"
+  model?: string
 ) {
   if (!path.isAbsolute(dir)) assertNoTraversal(dir);
-  const useAnthropic =
-    providerName === "anthropic" &&
-    Boolean(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.length > 0);
-  const provider = useAnthropic ? new AnthropicProvider() : new MockProvider();
+  const provider = new AnthropicProvider();
   return refineSkill(dir, change, { provider, model });
 }

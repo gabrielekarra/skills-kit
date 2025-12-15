@@ -95,7 +95,7 @@ program
           console.error(chalk.white("3. Run the command again\n"));
           process.exit(1);
         }
-        const res = await createCommand(description, opts.out, opts.model, "anthropic");
+        const res = await createCommand(description, opts.out, opts.model);
         if (res.ok) {
           console.log(chalk.green(`Create OK (${res.iterations} repair iterations)`));
           return;
@@ -143,7 +143,7 @@ program
           console.error(chalk.white("3. Run the command again\n"));
           process.exit(1);
         }
-        const res = await refineCommand(dir, change, opts.model, "anthropic");
+        const res = await refineCommand(dir, change, opts.model);
         if (res.ok) {
           console.log(chalk.green(`Refine OK (${res.iterations} repair iterations)`));
           return;
