@@ -16,6 +16,7 @@
     "@skills-kit/agent": "workspace:*",
     "@skills-kit/core": "workspace:*",
     "@skills-kit/runner": "workspace:*",
+    "@skills-kit/mcp-server": "workspace:*",
     "chalk": "^5.3.0",
     "commander": "^12.1.0"
   },

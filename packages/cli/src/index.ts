@@ -9,6 +9,7 @@ import { createCommand } from "./commands/create.js";
 import { refineCommand } from "./commands/refine.js";
 import { runCommand } from "./commands/run.js";
 import { runDoctor } from "./commands/doctor.js";
+import { serveCommand } from "./commands/serve.js";
 
 const program = new Command();
 
@@ -216,5 +217,48 @@ program
       process.exit(1);
     }
   });
+
+program
+  .command("serve")
+  .argument("<path>", "skill directory or directory containing skills")
+  .option("-p, --port <port>", "port number", "3000")
+  .option("-t, --transport <type>", "transport type: sse | stdio", "sse")
+  .option("--base-path <path>", "base path for endpoints", "")
+  .option("--inspector", "enable inspector UI", false)
+  .option("-w, --watch", "watch for file changes and hot-reload", false)
+  .option("--timeout <ms>", "skill execution timeout in milliseconds", "30000")
+  .description("serve skills as MCP tools via SSE or stdio")
+  .action(
+    async (
+      targetPath: string,
+      opts: {
+        port?: string;
+        transport?: string;
+        basePath?: string;
+        inspector?: boolean;
+        watch?: boolean;
+        timeout?: string;
+      }
+    ) => {
+      try {
+        const port = opts.port ? parseInt(opts.port, 10) : 3000;
+        const timeout = opts.timeout ? parseInt(opts.timeout, 10) : 30000;
+        const transport = opts.transport === "stdio" ? "stdio" : "sse";
+
+        await serveCommand(targetPath, {
+          port,
+          transport,
+          basePath: opts.basePath,
+          inspector: opts.inspector,
+          watch: opts.watch,
+          timeout
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(chalk.red(msg));
+        process.exit(1);
+      }
+    }
+  );
 
 void program.parseAsync(process.argv);
