@@ -1,5 +1,5 @@
 <div align="center">
-  <img src=".github/skills-kit logo.svg" alt="skills-kit" width="600">
+  <img src=".github/skills-logo.png" alt="skills-kit" width="300">
 
   <p><strong>Write AI skills once, run them everywhere.</strong><br>The universal standard for portable AI capabilities across any LLM.</p>
 
