@@ -60,11 +60,10 @@ Skills are simple: receive JSON via stdin, return JSON via stdout. Use any langu
 ## Features
 
 - **MCP Native** — First-class support for the Model Context Protocol
-- **Language Agnostic** — Write skills in JavaScript, Python, Bash, or any language
+- **LLM Agnostic** — Create skills for every LLM in the same way
 - **Golden Tests** — Snapshot testing to catch regressions
 - **Security Policies** — Declare what your skill can access
 - **AI Generation** — Describe what you want, get a working skill
-- **Bundling** — Package and share via npm or private registries
 
 <br>
 
