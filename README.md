@@ -1,43 +1,85 @@
 <div align="center">
-<img src=".github/logo.svg" alt="skills-kit" width="300">
 
-# skills-kit
+<img src=".github/logo.svg" alt="skills-kit" width="280">
 
-**Create AI skills once, run them everywhere.**
+<br>
 
+### Build AI skills once. Run them with any LLM.
+
+[![npm](https://img.shields.io/npm/v/@skills-kit/cli?color=blue)](https://www.npmjs.com/package/@skills-kit/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6.svg)](https://www.typescriptlang.org/)
-<a href="https://discord.gg/wwYpdTPCPR" alt="Discord">
-        <img src="https://dcbadge.limes.pink/api/server/wwYpdTPCPR?style=flat" />
-</a>
-
-[Quick Start](#quick-start) · [Examples](#examples)
+[![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/wwYpdTPCPR)
 
 </div>
 
----
+<br>
 
-Skills are portable AI capabilities. Define inputs, write logic, test once — then use with Claude, GPT, Gemini, or any MCP-compatible agent. No vendor lock-in.
+**Skills Kit** is an open-source framework for building portable AI capabilities. Write your logic once, then run it with Claude, GPT, Gemini, or any [MCP](https://modelcontextprotocol.io)-compatible agent.
 
----
+**No vendor lock-in. No rewrites. Just skills that work everywhere.**
 
-## Quick Start
+<br>
+
+## Why Skills Kit?
+
+| Problem | Solution |
+|---------|----------|
+| AI integrations break when you switch models | Skills are model-agnostic via MCP |
+| Custom tools are hard to test and validate | Built-in golden tests + linting |
+| Sharing AI capabilities requires boilerplate | Bundle and distribute via npm |
+| Security is an afterthought | Declarative permission policies |
+
+<br>
+
+## Get Started in 60 Seconds
 
 ```bash
-# Install
 npm install -g @skills-kit/cli
 
-# Create a skill
-skills-kit init my-skill
-
-# Validate & test
-skills-kit lint my-skill && skills-kit test my-skill
-
-# Serve via MCP
-skills-kit serve my-skill --port 3000
+skills-kit init my-skill      # Create a skill
+skills-kit test my-skill      # Run tests
+skills-kit serve my-skill     # Start MCP server
 ```
 
-Use with any LLM:
+That's it. Your skill is now available to any MCP-compatible AI agent.
+
+<br>
+
+## What's Inside a Skill?
+
+```
+my-skill/
+├── SKILL.md          # Schema: inputs, outputs, description
+├── policy.yaml       # Permissions: network, filesystem, exec
+├── scripts/run.cjs   # Your code (JSON in → JSON out)
+└── tests/golden.json # Test cases
+```
+
+Skills are simple: receive JSON via stdin, return JSON via stdout. Use any language.
+
+<br>
+
+## Connect to Any AI
+
+<details>
+<summary><b>Claude Desktop</b></summary>
+
+Add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "my-skills": {
+      "command": "skills-kit",
+      "args": ["serve", "./my-skills", "--transport", "stdio"]
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>OpenAI / GPT</b></summary>
 
 ```typescript
 import { MCPClient, MCPAgent } from 'mcp-use';
@@ -52,74 +94,57 @@ const agent = new MCPAgent({
   client
 });
 
-await agent.run('Use my-skill to do something');
+await agent.run('Use my-skill to process this data');
 ```
+</details>
 
-## What's a Skill?
+<details>
+<summary><b>Any MCP Client</b></summary>
 
+```bash
+skills-kit serve ./my-skills --port 3000
+# → SSE endpoint: http://localhost:3000/sse
 ```
-my-skill/
-├── SKILL.md        # Schema + docs (inputs, outputs, metadata)
-├── policy.yaml     # Permissions (network, fs, exec)
-├── scripts/run.cjs # Your logic (JSON in → JSON out)
-└── tests/golden.json
-```
+</details>
 
-Skills receive JSON via stdin, return JSON via stdout. Language-agnostic. Easy to test.
+<br>
+
+## CLI Reference
+
+| Command | Description |
+|---------|-------------|
+| `skills-kit init <path>` | Create a new skill from template |
+| `skills-kit create "desc"` | Generate a skill with AI |
+| `skills-kit lint <path>` | Validate skill structure |
+| `skills-kit test <path>` | Run golden tests |
+| `skills-kit serve <path>` | Start MCP server |
+| `skills-kit bundle <path>` | Package for distribution |
+
+<br>
 
 ## Features
 
-| | |
-|---|---|
-| 🔌 **MCP Native** | Works with any MCP client out of the box |
-| 📁 **File Processing** | PDFs, images, CSVs with compression & streaming |
-| 🧪 **Golden Tests** | Validate skills before deployment |
-| 🤖 **AI Generation** | Create skills from natural language |
-| 📦 **Bundling** | Package for npm or custom registries |
-| 🔒 **Policies** | Declarative security permissions |
+- **MCP Native** — First-class support for the Model Context Protocol
+- **Language Agnostic** — Write skills in JavaScript, Python, Bash, or any language
+- **Golden Tests** — Snapshot testing to catch regressions
+- **Security Policies** — Declare what your skill can access
+- **AI Generation** — Describe what you want, get a working skill
+- **Bundling** — Package and share via npm or private registries
 
-## CLI
+<br>
 
-```bash
-skills-kit init <path>              # Create from template
-skills-kit create "description"     # AI-generate skill
-skills-kit lint <path>              # Validate
-skills-kit test <path>              # Run golden tests
-skills-kit serve <path> --inspector # MCP server + web UI
-skills-kit bundle <path>            # Package for distribution
-```
+## Community
 
-## MCP Integration
+- [Discord](https://discord.gg/wwYpdTPCPR) — Get help and share what you're building
+- [Contributing](./CONTRIBUTING.md) — We welcome PRs
+- [Issues](https://github.com/gabrielekarra/skills-kit/issues) — Report bugs or request features
 
-**With mcp-use:**
-
-```typescript
-const client = MCPClient.fromDict({
-  mcpServers: { skills: { url: 'http://localhost:3000/sse' } }
-});
-```
-
-**With Claude Desktop** (`claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "skills": {
-      "command": "skills-kit",
-      "args": ["serve", "./my-skills", "--transport", "stdio"]
-    }
-  }
-}
-```
-
-## Links
-
-[Discord](https://discord.gg/wwYpdTPCPR) · [Contributing](./CONTRIBUTING.md) · [License](./LICENSE)
+<br>
 
 ---
 
 <div align="center">
 
-**MIT © [Gabriele Karra](https://github.com/gabrielekarra)**
+MIT License · Made by [Gabriele Karra](https://github.com/gabrielekarra)
 
 </div>
