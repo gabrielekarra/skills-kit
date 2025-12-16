@@ -30,20 +30,6 @@
 
 <br>
 
-## Get Started in 60 Seconds
-
-```bash
-npm install -g @skills-kit/cli
-
-skills-kit init my-skill      # Create a skill
-skills-kit test my-skill      # Run tests
-skills-kit serve my-skill     # Start MCP server
-```
-
-That's it. Your skill is now available to any MCP-compatible AI agent.
-
-<br>
-
 ## What's Inside a Skill?
 
 ```
