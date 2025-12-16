@@ -44,56 +44,6 @@ Skills are simple: receive JSON via stdin, return JSON via stdout. Use any langu
 
 <br>
 
-## Connect to Any AI
-
-<details>
-<summary><b>Claude Desktop</b></summary>
-
-Add to `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "my-skills": {
-      "command": "skills-kit",
-      "args": ["serve", "./my-skills", "--transport", "stdio"]
-    }
-  }
-}
-```
-</details>
-
-<details>
-<summary><b>OpenAI / GPT</b></summary>
-
-```typescript
-import { MCPClient, MCPAgent } from 'mcp-use';
-import { ChatOpenAI } from '@langchain/openai';
-
-const client = MCPClient.fromDict({
-  mcpServers: { skills: { url: 'http://localhost:3000/sse' } }
-});
-
-const agent = new MCPAgent({
-  llm: new ChatOpenAI({ model: 'gpt-4o' }),
-  client
-});
-
-await agent.run('Use my-skill to process this data');
-```
-</details>
-
-<details>
-<summary><b>Any MCP Client</b></summary>
-
-```bash
-skills-kit serve ./my-skills --port 3000
-# → SSE endpoint: http://localhost:3000/sse
-```
-</details>
-
-<br>
-
 ## CLI Reference
 
 | Command | Description |
