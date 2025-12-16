@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import path from "node:path";
+import fs from "node:fs/promises";
+import os from "node:os";
 import { loadSkill, loadSkillsFromDirectory } from "../src/skill-loader.js";
 
 const FIXTURES_DIR = path.join(__dirname, "fixtures");
@@ -52,6 +54,8 @@ describe("loadSkillsFromDirectory", () => {
   });
 
   it("throws for directory with no skills", async () => {
-    await expect(loadSkillsFromDirectory("/tmp")).rejects.toThrow("No skills found");
+    const emptyDir = await fs.mkdtemp(path.join(os.tmpdir(), "empty-skills-"));
+    await expect(loadSkillsFromDirectory(emptyDir)).rejects.toThrow("No skills found");
+    await fs.rm(emptyDir, { recursive: true });
   });
 });
