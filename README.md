@@ -1,15 +1,17 @@
 <div align="center">
+<img src=".github/skills-logo.png" alt="skills-kit" width="300">
 
 # skills-kit
 
 **Create AI skills once, run them everywhere.**
 
-[![npm](https://img.shields.io/npm/v/@skills-kit/cli.svg)](https://www.npmjs.com/package/@skills-kit/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6.svg)](https://www.typescriptlang.org/)
-[![Discord](https://img.shields.io/discord/YOUR_SERVER_ID?color=7289da&label=Discord)](https://discord.gg/wwYpdTPCPR)
+<a href="https://discord.gg/wwYpdTPCPR" alt="Discord">
+        <img src="https://dcbadge.limes.pink/api/server/wwYpdTPCPR?style=flat" />
+</a>
 
-[Quick Start](#quick-start) · [Examples](#examples) · [Discord](https://discord.gg/wwYpdTPCPR)
+[Quick Start](#quick-start) · [Examples](#examples)
 
 </div>
 
@@ -109,15 +111,6 @@ const client = MCPClient.fromDict({
   }
 }
 ```
-
-## Examples
-
-Coming soon! We're working on example skills to showcase:
-- Browser automation with Playwright
-- PDF text extraction
-- Streaming CSV analysis
-- Image processing
-- API integrations
 
 ## Links
 
