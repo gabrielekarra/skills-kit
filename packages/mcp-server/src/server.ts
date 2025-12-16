@@ -4,18 +4,29 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
-  Tool
+  type Tool
 } from "@modelcontextprotocol/sdk/types.js";
 import http from "node:http";
 import { watch } from "chokidar";
 import { loadSkillsFromDirectory, loadSkillsFromPaths } from "./skill-loader.js";
 import { skillToToolDefinition } from "./skill-to-tool.js";
 import type { SkillsServerConfig, LoadedSkill } from "./types.js";
+import type { z } from "zod";
+
+interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: z.ZodObject<z.ZodRawShape>;
+  execute: (input: unknown) => Promise<{
+    content: Array<{ type: "text"; text: string }>;
+    isError?: boolean;
+  }>;
+}
 
 export class SkillsMCPServer {
   private server: Server;
   private loadedSkills: Map<string, LoadedSkill> = new Map();
-  private tools: Map<string, any> = new Map();
+  private tools: Map<string, ToolDefinition> = new Map();
   private config: Required<Omit<SkillsServerConfig, "skillsDir" | "skills">> & {
     skillsDir?: string;
     skills?: string[];
@@ -55,7 +66,7 @@ export class SkillsMCPServer {
 
   private setupHandlers() {
     // List tools handler
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+    this.server.setRequestHandler(ListToolsRequestSchema, () => {
       const tools: Tool[] = Array.from(this.tools.values()).map((tool) => ({
         name: tool.name,
         description: tool.description,
@@ -139,15 +150,16 @@ export class SkillsMCPServer {
       }
     });
 
-    this.watcher.on("change", async (path) => {
+    this.watcher.on("change", (path) => {
       if (path.endsWith("SKILL.md") || path.endsWith("policy.yaml")) {
         console.log(`\nDetected change in ${path}, reloading skills...`);
-        try {
-          await this.loadSkills();
-          console.log("Skills reloaded successfully");
-        } catch (error) {
-          console.error("Failed to reload skills:", error);
-        }
+        this.loadSkills()
+          .then(() => {
+            console.log("Skills reloaded successfully");
+          })
+          .catch((error: unknown) => {
+            console.error("Failed to reload skills:", error);
+          });
       }
     });
 
@@ -165,7 +177,7 @@ export class SkillsMCPServer {
       console.log("MCP server running on stdio");
     } else {
       // SSE transport (HTTP-based)
-      this.httpServer = http.createServer(async (req, res) => {
+      this.httpServer = http.createServer((req, res) => {
         const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
         const basePath = this.config.basePath;
 
@@ -174,7 +186,9 @@ export class SkillsMCPServer {
           console.log(`SSE connection from ${req.socket.remoteAddress}`);
 
           const transport = new SSEServerTransport(url.pathname, res);
-          await this.server.connect(transport);
+          this.server.connect(transport).catch((error: unknown) => {
+            console.error("Failed to connect SSE transport:", error);
+          });
           return;
         }
 

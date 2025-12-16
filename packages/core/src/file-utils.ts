@@ -1,13 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createReadStream, createWriteStream } from "node:fs";
+import { createReadStream } from "node:fs";
 import { Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
-import { Transform } from "node:stream";
 import { randomBytes } from "node:crypto";
 import os from "node:os";
-import { compress, decompress, decompressAuto, type CompressionConfig } from "./compression.js";
-import { streamManager, type StreamHandle } from "./stream-manager.js";
+import { compress, decompress } from "./compression.js";
+import { streamManager } from "./stream-manager.js";
 
 export interface FileInput {
   filename: string;
@@ -313,11 +311,9 @@ export async function createFileInput(
   const buffer = await fs.readFile(filePath);
 
   const compressionMode = options?.compression || "auto";
-  const compressionConfig: Partial<CompressionConfig> = {
-    mode: compressionMode as any
-  };
-
-  const compressed = await compress(buffer, mimeType, compressionConfig);
+  const compressed = await compress(buffer, mimeType, {
+    mode: compressionMode
+  });
 
   return {
     filename,
@@ -369,7 +365,7 @@ export async function createFileInputFromBuffer(
   // Compress buffer
   const compressionMode = options?.compression || "auto";
   const compressed = await compress(buffer, metadata.mimeType, {
-    mode: compressionMode as any
+    mode: compressionMode
   });
 
   return {
@@ -407,7 +403,7 @@ export async function createFileOutput(
 
   const compressionMode = options?.compression || "auto";
   const compressed = await compress(buffer, metadata.mimeType, {
-    mode: compressionMode as any
+    mode: compressionMode
   });
 
   return {

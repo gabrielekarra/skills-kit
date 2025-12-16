@@ -5,7 +5,6 @@ import {
   streamManager,
   STREAMING_CONFIG,
   validateFile,
-  createFileInputFromBuffer,
   compress
 } from "@skills-kit/core";
 
@@ -82,7 +81,7 @@ export class MCPFileHandler {
       mimeType: fileData.mimeType,
       size: fileData.size,
       originalSize: fileData.originalSize,
-      compression: (fileData.compression as any) || "none",
+      compression: (fileData.compression as "none" | "gzip" | "brotli") || "none",
       streaming: isStreaming
     };
 
@@ -155,7 +154,7 @@ export class MCPFileHandler {
   /**
    * Clean up all temp files from a request
    */
-  async cleanupRequest(requestId: string): Promise<void> {
+  cleanupRequest(requestId: string): void {
     // Cleanup tracked request
     this.requestFileSizes.delete(requestId);
 

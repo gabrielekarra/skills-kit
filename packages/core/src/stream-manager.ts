@@ -4,7 +4,7 @@ import os from "node:os";
 import { randomBytes } from "node:crypto";
 import { pipeline } from "node:stream/promises";
 import { createReadStream, createWriteStream } from "node:fs";
-import { createGunzip, createGzip, createBrotliDecompress } from "node:zlib";
+import { createGunzip, createBrotliDecompress } from "node:zlib";
 import type { Readable } from "node:stream";
 
 export interface StreamConfig {
@@ -228,7 +228,7 @@ export class StreamManager {
     // Delete file
     try {
       await fs.promises.unlink(metadata.handle.path);
-    } catch (error) {
+    } catch {
       // File might already be deleted
     }
 

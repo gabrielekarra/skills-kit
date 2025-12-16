@@ -1,5 +1,4 @@
 import { spawn } from "node:child_process";
-import path from "node:path";
 import { safeResolve } from "@skills-kit/core";
 import type { LoadedSkill } from "./types.js";
 import { SkillExecutionError } from "./types.js";
@@ -96,13 +95,14 @@ export async function executeSkill(
           resolve(null);
           return;
         }
-        const output = JSON.parse(trimmed);
+        const output: unknown = JSON.parse(trimmed);
         resolve(output);
       } catch (parseError) {
+        const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
         reject(
           new SkillExecutionError(
             skill.frontmatter.name,
-            new Error(`Failed to parse skill output as JSON: ${parseError}`),
+            new Error(`Failed to parse skill output as JSON: ${errorMsg}`),
             stdout,
             stderr,
             code ?? undefined

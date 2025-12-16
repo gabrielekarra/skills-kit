@@ -16,8 +16,6 @@ type YAMLSchemaProperty = {
   maxItems?: number;
 };
 
-type YAMLSchema = Record<string, YAMLSchemaProperty>;
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -120,7 +118,7 @@ function createFileSchema(prop: YAMLSchemaProperty): z.ZodTypeAny {
   // Add MIME type validation
   if (prop.accept && Array.isArray(prop.accept) && prop.accept.length > 0) {
     schema = schema.refine(
-      (file: any) => matchesMimeType(file.mimeType, prop.accept as string[]),
+      (file: { mimeType: string }) => matchesMimeType(file.mimeType, prop.accept as string[]),
       {
         message: `File must be one of: ${prop.accept.join(", ")}`
       }
@@ -130,14 +128,14 @@ function createFileSchema(prop: YAMLSchemaProperty): z.ZodTypeAny {
   // Add size validation
   if (prop.maxSize && typeof prop.maxSize === "string") {
     const maxBytes = parseSize(prop.maxSize);
-    schema = schema.refine((file: any) => file.originalSize <= maxBytes, {
+    schema = schema.refine((file: { originalSize: number }) => file.originalSize <= maxBytes, {
       message: `File must be smaller than ${prop.maxSize}`
     });
   }
 
   // Validate streaming consistency
   schema = schema.refine(
-    (file: any) => {
+    (file: { streaming?: boolean; streamPath?: string; streamId?: string; data?: string }) => {
       if (file.streaming) {
         return file.streamPath && file.streamId && !file.data;
       }
@@ -157,7 +155,7 @@ function createFileSchema(prop: YAMLSchemaProperty): z.ZodTypeAny {
  * @param inputs - The inputs object from SKILL.md frontmatter
  * @returns A Zod object schema
  */
-export function yamlToZodSchema(inputs: unknown): z.ZodObject<any> {
+export function yamlToZodSchema(inputs: unknown): z.ZodObject<z.ZodRawShape> {
   if (!isRecord(inputs) || Object.keys(inputs).length === 0) {
     // Return empty object schema if no inputs defined
     return z.object({});

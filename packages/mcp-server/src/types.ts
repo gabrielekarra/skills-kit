@@ -4,7 +4,7 @@ import type { z } from "zod";
 export type LoadedSkill = {
   skill: ParsedSkill;
   policy: Policy;
-  schema: z.ZodObject<any>;
+  schema: z.ZodObject<z.ZodRawShape>;
 };
 
 export type SkillsServerConfig = {

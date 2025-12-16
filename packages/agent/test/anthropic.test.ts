@@ -12,7 +12,7 @@ function withEnv(key: string, value: string, fn: () => Promise<void>) {
 }
 
 describe("AnthropicProvider", () => {
-  it("retries once with STRICT JSON ONLY when spec is not JSON", async () => {
+  it("retries with stricter JSON prompt when spec is not JSON", async () => {
     const provider = new AnthropicProvider();
     const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
     const responses = [
@@ -66,6 +66,6 @@ describe("AnthropicProvider", () => {
     expect(calls.length).toBe(2);
     const secondInit = calls[1]?.init;
     const body = typeof secondInit?.body === "string" ? secondInit.body : "";
-    expect(body).toContain("STRICT JSON ONLY");
+    expect(body).toContain("JSON-only generator");
   });
 });

@@ -121,10 +121,11 @@ export async function decompressBrotli(data: Buffer): Promise<Buffer> {
 export async function decompress(data: Buffer, algorithm: "gzip" | "brotli"): Promise<Buffer> {
   if (algorithm === "gzip") {
     return decompressGzip(data);
-  } else if (algorithm === "brotli") {
+  }
+  if (algorithm === "brotli") {
     return decompressBrotli(data);
   }
-  throw new Error(`Unsupported compression algorithm: ${algorithm}`);
+  throw new Error(`Unsupported compression algorithm: ${String(algorithm)}`);
 }
 
 /**
