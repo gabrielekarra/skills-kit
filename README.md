@@ -1,5 +1,5 @@
 <div align="center">
-<img src=".github/skills-logo.png" alt="skills-kit" width="300">
+<img src=".github/logo.svg" alt="skills-kit" width="300">
 
 # skills-kit
 
