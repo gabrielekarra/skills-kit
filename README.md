@@ -6,7 +6,6 @@
 
 ### Build AI skills once. Run them with any LLM.
 
-[![npm](https://img.shields.io/npm/v/@skills-kit/cli?color=blue)](https://www.npmjs.com/package/@skills-kit/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/wwYpdTPCPR)
 
