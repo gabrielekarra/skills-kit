@@ -1,450 +1,132 @@
 <div align="center">
-  <img src=".github/skills-logo.png" alt="skills-kit" width="300">
 
-  <p><strong>Write AI skills once, run them everywhere.</strong><br>The universal standard for portable AI capabilities across any LLM.</p>
+# skills-kit
 
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-  [![Node Version](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
+**Create AI skills once, run them everywhere.**
+
+[![npm](https://img.shields.io/npm/v/@skills-kit/cli.svg)](https://www.npmjs.com/package/@skills-kit/cli)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178c6.svg)](https://www.typescriptlang.org/)
+[![Discord](https://img.shields.io/discord/YOUR_SERVER_ID?color=7289da&label=Discord)](https://discord.gg/wwYpdTPCPR)
+
+[Quick Start](#quick-start) · [Examples](#examples) · [Discord](https://discord.gg/wwYpdTPCPR)
+
 </div>
 
 ---
 
-## Why skills-kit?
-
-**Stop rewriting the same AI tools for every LLM provider.**
-
-Claude skills don't work with OpenAI. OpenAI functions don't work with Gemini. Every time you switch providers, you rewrite everything.
-
-**skills-kit solves this:** Write your skill once in a universal format, then generate platform-specific integrations automatically.
+Skills are portable AI capabilities. Define inputs, write logic, test once — then use with Claude, GPT, Gemini, or any MCP-compatible agent. No vendor lock-in.
 
 ---
 
 ## Quick Start
 
-### Install
-
 ```bash
+# Install
 npm install -g @skills-kit/cli
+
+# Create a skill
+skills-kit init my-skill
+
+# Validate & test
+skills-kit lint my-skill && skills-kit test my-skill
+
+# Serve via MCP
+skills-kit serve my-skill --port 3000
 ```
 
-### Set API Key
+Use with any LLM:
 
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+```typescript
+import { MCPClient, MCPAgent } from 'mcp-use';
+import { ChatOpenAI } from '@langchain/openai';
+
+const client = MCPClient.fromDict({
+  mcpServers: { skills: { url: 'http://localhost:3000/sse' } }
+});
+
+const agent = new MCPAgent({
+  llm: new ChatOpenAI({ model: 'gpt-4o' }),
+  client
+});
+
+await agent.run('Use my-skill to do something');
 ```
 
-Get your key from [console.anthropic.com](https://console.anthropic.com/)
-
-### Create a Skill
-
-```bash
-# AI-powered creation
-skills-kit create "Validate email addresses" --out ./email-validator
-
-# Test it
-skills-kit test ./email-validator
-
-# Run it
-echo '{"email": "test@example.com"}' | skills-kit run ./email-validator
-
-# Bundle for different platforms
-skills-kit bundle ./email-validator --target openai
-skills-kit bundle ./email-validator --target gemini
-skills-kit bundle ./email-validator --target claude
-```
-
----
-
-## Key Features
-
-### 🚀 Write Once, Run Anywhere
-
-```bash
-skills-kit bundle ./my-skill --target openai   # OpenAI function calling
-skills-kit bundle ./my-skill --target gemini   # Gemini function declaration
-skills-kit bundle ./my-skill --target claude   # Claude native format
-skills-kit bundle ./my-skill --target generic  # Universal format
-```
-
-### 🤖 AI-Powered Generation
-
-Describe what you want, get a complete working skill:
-
-```bash
-skills-kit create "Parse CSV and detect anomalies" --out ./csv-parser
-# Creates: SKILL.md, scripts/run.cjs, policy.yaml, tests/golden.json
-```
-
-### 🧪 Built-in Testing
-
-Golden tests ensure correctness:
-
-```bash
-skills-kit test ./my-skill
-```
-
-### 🔒 Security Policies
-
-Every skill has enforceable security policies:
-
-```yaml
-# policy.yaml
-network: false
-fs_read: []
-fs_write: []
-exec_allowlist: []
-```
-
----
-
-## Universal Skill Format
-
-Every skill is a directory:
+## What's a Skill?
 
 ```
 my-skill/
-├── SKILL.md           # Manifest (YAML frontmatter + markdown)
-├── policy.yaml        # Security policy
-├── scripts/
-│   └── run.cjs       # Entrypoint (JSON in → JSON out)
-└── tests/
-    └── golden.json   # Test cases
+├── SKILL.md        # Schema + docs (inputs, outputs, metadata)
+├── policy.yaml     # Permissions (network, fs, exec)
+├── scripts/run.cjs # Your logic (JSON in → JSON out)
+└── tests/golden.json
 ```
 
-### Example: SKILL.md
+Skills receive JSON via stdin, return JSON via stdout. Language-agnostic. Easy to test.
 
-```markdown
----
-name: email-validator
-version: 1.0.0
-description: Validate email addresses
-entrypoints:
-  - scripts/run.cjs
-inputs:
-  type: object
-  properties:
-    email: { type: string }
-  required: [email]
-outputs:
-  type: object
-  properties:
-    valid: { type: boolean }
-    domain: { type: string }
----
+## Features
 
-# Email Validator
+| | |
+|---|---|
+| 🔌 **MCP Native** | Works with any MCP client out of the box |
+| 📁 **File Processing** | PDFs, images, CSVs with compression & streaming |
+| 🧪 **Golden Tests** | Validate skills before deployment |
+| 🤖 **AI Generation** | Create skills from natural language |
+| 📦 **Bundling** | Package for npm or custom registries |
+| 🔒 **Policies** | Declarative security permissions |
 
-Validates email addresses using RFC 5322 standards.
-```
-
-### Example: scripts/run.cjs
-
-```javascript
-#!/usr/bin/env node
-
-const chunks = [];
-process.stdin.on('data', chunk => chunks.push(chunk));
-process.stdin.on('end', () => {
-  const input = JSON.parse(Buffer.concat(chunks).toString());
-
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const valid = regex.test(input.email);
-
-  console.log(JSON.stringify({
-    valid,
-    domain: valid ? input.email.split('@')[1] : null
-  }));
-});
-```
-
-### Example: tests/golden.json
-
-```json
-[
-  {
-    "name": "valid-email",
-    "input": {"email": "test@example.com"},
-    "expected": {"valid": true, "domain": "example.com"}
-  },
-  {
-    "name": "invalid-email",
-    "input": {"email": "not-an-email"},
-    "expected": {"valid": false, "domain": null}
-  }
-]
-```
-
----
-
-## CLI Commands
+## CLI
 
 ```bash
-# Check system setup
-skills-kit doctor
-
-# Create new skill (AI-powered)
-skills-kit create "Description" --out ./skill-dir
-
-# Create skeleton manually
-skills-kit init ./skill-dir
-
-# Validate skill
-skills-kit lint ./skill-dir
-
-# Run tests
-skills-kit test ./skill-dir
-
-# Execute skill
-skills-kit run ./skill-dir --json '{"key": "value"}'
-skills-kit run ./skill-dir --input data.json
-echo '{"key": "value"}' | skills-kit run ./skill-dir
-
-# Bundle for platforms
-skills-kit bundle ./skill-dir --target openai
-skills-kit bundle ./skill-dir --target gemini
-skills-kit bundle ./skill-dir --target claude
-skills-kit bundle ./skill-dir --target generic
-
-# Refine existing skill
-skills-kit refine ./skill-dir "Add support for multiple emails"
+skills-kit init <path>              # Create from template
+skills-kit create "description"     # AI-generate skill
+skills-kit lint <path>              # Validate
+skills-kit test <path>              # Run golden tests
+skills-kit serve <path> --inspector # MCP server + web UI
+skills-kit bundle <path>            # Package for distribution
 ```
 
----
+## MCP Integration
 
-## Cross-Platform Adapters
-
-Each bundle generates platform-specific integration files:
-
-| Platform | Generated Files | Description |
-|----------|----------------|-------------|
-| **OpenAI** | `tool.json`, `system_prompt.txt`, `usage.md` | Function calling schema + examples |
-| **Gemini** | `function.json`, `system_instruction.txt`, `usage.md` | Function declaration + examples |
-| **Claude** | `notes.md` | Integration notes (uses native format) |
-| **Generic** | `README.md` | Universal integration guide |
-
-All bundles include Python and JavaScript integration examples.
-
----
-
-## Using Skills with LLMs
-
-### Complete Workflow
-
-1. **Create and bundle your skill:**
-
-```bash
-# Create a skill
-skills-kit create "Validate email addresses" --out ./email-validator
-
-# Test it locally
-skills-kit test ./email-validator
-
-# Bundle for OpenAI
-skills-kit bundle ./email-validator --target openai
-
-# Extract the bundle
-cd email-validator
-unzip email-validator-openai.zip -d openai-bundle
-```
-
-2. **Integrate with OpenAI (Python):**
-
-```python
-import openai
-import json
-import subprocess
-
-# Load the tool definition
-with open('openai-bundle/adapters/openai/tool.json') as f:
-    tool_def = json.load(f)
-
-# Use with ChatGPT
-client = openai.OpenAI()
-response = client.chat.completions.create(
-    model="gpt-4",
-    messages=[
-        {"role": "user", "content": "Validate test@example.com"}
-    ],
-    tools=[tool_def],
-    tool_choice="auto"
-)
-
-# If GPT calls the tool, execute the skill
-if response.choices[0].message.tool_calls:
-    tool_call = response.choices[0].message.tool_calls[0]
-    args = json.loads(tool_call.function.arguments)
-
-    # Execute the skill
-    result = subprocess.run(
-        ['node', 'scripts/run.cjs'],
-        input=json.dumps(args),
-        capture_output=True,
-        text=True,
-        cwd='openai-bundle'
-    )
-
-    output = json.loads(result.stdout)
-    print(f"Valid: {output['valid']}, Domain: {output['domain']}")
-```
-
-3. **Integrate with OpenAI (JavaScript):**
-
-```javascript
-import OpenAI from 'openai';
-import fs from 'fs';
-import { spawn } from 'child_process';
-
-// Load the tool definition
-const toolDef = JSON.parse(
-  fs.readFileSync('openai-bundle/adapters/openai/tool.json', 'utf8')
-);
-
-// Use with ChatGPT
-const openai = new OpenAI();
-const response = await openai.chat.completions.create({
-  model: 'gpt-4',
-  messages: [
-    { role: 'user', content: 'Validate test@example.com' }
-  ],
-  tools: [toolDef],
-  tool_choice: 'auto'
-});
-
-// If GPT calls the tool, execute the skill
-if (response.choices[0].message.tool_calls) {
-  const toolCall = response.choices[0].message.tool_calls[0];
-  const args = JSON.parse(toolCall.function.arguments);
-
-  // Execute the skill
-  const proc = spawn('node', ['scripts/run.cjs'], {
-    cwd: 'openai-bundle'
-  });
-
-  proc.stdin.write(JSON.stringify(args));
-  proc.stdin.end();
-
-  let output = '';
-  proc.stdout.on('data', (data) => output += data);
-  proc.stdout.on('end', () => {
-    const result = JSON.parse(output);
-    console.log(`Valid: ${result.valid}, Domain: ${result.domain}`);
-  });
-}
-```
-
-**The same pattern works for Gemini, Claude, and other LLMs.** Each bundle includes complete integration examples in the `usage.md` file.
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────┐
-│    Developer (write once)    │
-└──────────────┬──────────────┘
-               │
-       ┌───────▼────────┐
-       │ Universal Format│
-       │  SKILL.md      │
-       │  policy.yaml   │
-       │  run.cjs       │
-       │  golden.json   │
-       └───────┬────────┘
-               │
-    ┌──────────┼──────────┬─────────┐
-    │          │          │         │
-┌───▼───┐ ┌───▼───┐ ┌───▼───┐ ┌───▼───┐
-│OpenAI │ │Gemini │ │Claude │ │Generic│
-└───────┘ └───────┘ └───────┘ └───────┘
-```
-
-### Package Structure
-
-```
-packages/
-├── core/       # Parsing, linting, bundling, testing
-├── runner/     # Execution with policy enforcement
-├── agent/      # AI-powered generation (Claude)
-└── cli/        # Command-line interface
-```
-
----
-
-## Development
-
-### Setup
-
-```bash
-git clone https://github.com/your-org/skills-kit.git
-cd skills-kit
-pnpm install
-pnpm build
-pnpm test
-```
-
-### Run CLI Locally
-
-```bash
-node packages/cli/dist/index.js --help
-```
-
-### Project Structure
-
-```
-skills-kit/
-├── packages/
-│   ├── core/      # @skills-kit/core
-│   ├── runner/    # @skills-kit/runner
-│   ├── agent/     # @skills-kit/agent
-│   └── cli/       # @skills-kit/cli
-└── examples/      # Example skills
-```
-
----
-
-## Contributing
-
-Contributions welcome! To contribute:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Run `pnpm build && pnpm test && pnpm lint`
-6. Submit a Pull Request
-
-### Adding New Adapters
-
-To add support for a new LLM platform:
-
-1. Create `packages/core/src/adapters/platform.ts`
-2. Implement generator functions
-3. Add to `packages/core/src/bundle.ts`
-4. Add tests
-
-Example:
+**With mcp-use:**
 
 ```typescript
-// packages/core/src/adapters/mistral.ts
-import type { ParsedSkill } from "../skill.js";
+const client = MCPClient.fromDict({
+  mcpServers: { skills: { url: 'http://localhost:3000/sse' } }
+});
+```
 
-export function generateMistralFunction(skill: ParsedSkill) {
-  return {
-    name: skill.frontmatter.name,
-    description: skill.frontmatter.description,
-    parameters: skill.frontmatter.inputs
-  };
+**With Claude Desktop** (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "skills": {
+      "command": "skills-kit",
+      "args": ["serve", "./my-skills", "--transport", "stdio"]
+    }
+  }
 }
 ```
 
+## Examples
+
+Coming soon! We're working on example skills to showcase:
+- Browser automation with Playwright
+- PDF text extraction
+- Streaming CSV analysis
+- Image processing
+- API integrations
+
+## Links
+
+[Discord](https://discord.gg/wwYpdTPCPR) · [Contributing](./CONTRIBUTING.md) · [License](./LICENSE)
+
 ---
 
-## License
+<div align="center">
 
-MIT License - see [LICENSE](LICENSE)
+**MIT © [Gabriele Karra](https://github.com/gabrielekarra)**
 
-Copyright (c) 2024 skills-kit contributors
-
----
-
-⭐ Star this repo if you believe in portable AI skills
+</div>
