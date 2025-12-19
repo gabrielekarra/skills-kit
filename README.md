@@ -6,7 +6,6 @@
 
 ### Build AI skills once. Run them with any LLM.
 
-[![npm](https://img.shields.io/npm/v/@skills-kit/cli?color=blue)](https://www.npmjs.com/package/@skills-kit/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/wwYpdTPCPR)
 
@@ -23,8 +22,6 @@
 ## Watch the Flow
 
 <video src=".github/demo.mp4" controls muted playsinline width="100%"></video>
-
-Prefer a direct link? [Download the demo](.github/demo.mp4).
 
 <br>
 
@@ -143,7 +140,6 @@ skills-kit serve ./my-skills --port 3000
 - **Language Agnostic** — Write skills in JavaScript, Python, Bash, or any language
 - **Security Policies** — Declare what your skill can access
 - **AI Generation** — Describe what you want, get a working skill
-- **Bundling** — Package and share via npm or private registries
 
 <br>
 
