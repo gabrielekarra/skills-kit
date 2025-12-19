@@ -21,7 +21,7 @@
 
 ## Watch the Flow
 
-<video src=".github/demo.mp4" controls muted playsinline width="100%"></video>
+<video src=".github/demo.gif" controls muted playsinline width="100%"></video>
 
 <br>
 
