@@ -1,9 +1,0 @@
-{
-  "name": "airbnb-property-pdf-report-generator",
-  "version": "1.0.0",
-  "description": "Generates a PDF report for an Airbnb property with detailed sections, styled as per the provided template.",
-  "main": "scripts/run.cjs",
-  "dependencies": {
-    "pdfkit": "^0.13.0"
-  }
-}
