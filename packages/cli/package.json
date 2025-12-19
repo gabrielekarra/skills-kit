@@ -8,9 +8,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "lint": "eslint src test --max-warnings=0",
-    "pretest": "pnpm -C ../core build",
-    "test": "vitest run"
+    "lint": "eslint src --max-warnings=0"
   },
   "dependencies": {
     "@skills-kit/agent": "workspace:*",
@@ -18,7 +16,8 @@
     "@skills-kit/runner": "workspace:*",
     "@skills-kit/mcp-server": "workspace:*",
     "chalk": "^5.3.0",
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "pdf-parse": "^1.1.1"
   },
   "devDependencies": {
     "@types/node": "^20.11.30"

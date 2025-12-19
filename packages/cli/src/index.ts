@@ -3,7 +3,6 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { initSkill } from "./commands/init.js";
 import { lintCommand } from "./commands/lint.js";
-import { testCommand } from "./commands/test.js";
 import { bundleCommand } from "./commands/bundle.js";
 import { createCommand } from "./commands/create.js";
 import { refineCommand } from "./commands/refine.js";
@@ -43,23 +42,6 @@ program
   });
 
 program
-  .command("test")
-  .argument("<dir>", "skill directory")
-  .description("run golden tests")
-  .action(async (dir: string) => {
-    const res = await testCommand(dir);
-    if (res.ok) {
-      console.log(chalk.green(`Tests OK (${res.passed} passed)`));
-      process.exit(0);
-    }
-    console.error(chalk.red(`Tests failed (${res.failed} failed)`));
-    for (const f of res.failures) {
-      console.error(chalk.red(`- ${f.testCase.name ?? "case"}: ${f.error}`));
-    }
-    process.exit(1);
-  });
-
-program
   .command("bundle")
   .argument("<dir>", "skill directory")
   .requiredOption("--target <target>", "claude|openai|gemini|generic")
@@ -80,40 +62,39 @@ program
   .command("create")
   .argument("<description>", "natural language description")
   .requiredOption("--out <dir>", "output directory")
-  .option("--model <model>", "anthropic model id (default: claude-sonnet-4-5-latest)")
-  .description("create a new skill using Claude AI")
+  .option("--provider <provider>", "AI provider: anthropic (default) or openai", "anthropic")
+  .option("--model <model>", "model id (anthropic: claude-sonnet-4-5-latest, openai: gpt-4o)")
+  .option("--context <files...>", "context files (PDF, images, etc.) to provide as visual reference")
+  .option("--text-only", "extract text from PDFs instead of sending full binary (reduces token usage)")
+  .description("create a new skill using AI")
   .action(
     async (
       description: string,
-      opts: { out: string; model?: string }
+      opts: { out: string; provider?: string; model?: string; context?: string[]; textOnly?: boolean }
     ) => {
       try {
-        if (!process.env.ANTHROPIC_API_KEY) {
-          console.error(chalk.red("Error: ANTHROPIC_API_KEY environment variable is not set."));
-          console.error(chalk.yellow("\nTo use the create command, you need an Anthropic API key:"));
-          console.error(chalk.white("1. Get your API key from https://console.anthropic.com/"));
-          console.error(chalk.white("2. Set it: export ANTHROPIC_API_KEY=sk-ant-..."));
-          console.error(chalk.white("3. Run the command again\n"));
+        const providerType = opts.provider === "openai" ? "openai" : "anthropic";
+        const { validateApiKey } = await import("./commands/create.js");
+        const validation = validateApiKey(providerType);
+        if (!validation.valid) {
+          console.error(chalk.red(`Error: ${validation.message}`));
           process.exit(1);
         }
-        const res = await createCommand(description, opts.out, opts.model);
+        console.log(chalk.blue(`Using provider: ${providerType}`));
+        if (opts.context && opts.context.length > 0) {
+          console.log(chalk.blue(`Loading ${opts.context.length} context file(s)${opts.textOnly ? " (text-only mode)" : ""}...`));
+        }
+        const res = await createCommand(description, opts.out, {
+          model: opts.model,
+          contextFiles: opts.context,
+          providerType,
+          textOnly: opts.textOnly
+        });
         if (res.ok) {
-          console.log(chalk.green(`Create OK (${res.iterations} repair iterations)`));
+          console.log(chalk.green("Create OK"));
           return;
         }
-        console.error(chalk.red(`Create failed after ${res.iterations} repair iterations`));
-        const firstLint = res.lint.issues.find((i) => i.severity === "error");
-        if (firstLint) {
-          console.error(
-            chalk.red(
-              `Lint: ${firstLint.code}: ${firstLint.message}${firstLint.path ? ` (${firstLint.path})` : ""}`
-            )
-          );
-        }
-        const firstTest = res.tests.failures[0];
-        if (firstTest) {
-          console.error(chalk.red(`Test: ${firstTest.testCase.name ?? "case"}: ${firstTest.error}`));
-        }
+        console.error(chalk.red("Create failed"));
         process.exit(1);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -146,22 +127,10 @@ program
         }
         const res = await refineCommand(dir, change, opts.model);
         if (res.ok) {
-          console.log(chalk.green(`Refine OK (${res.iterations} repair iterations)`));
+          console.log(chalk.green("Refine OK"));
           return;
         }
-        console.error(chalk.red(`Refine failed after ${res.iterations} repair iterations`));
-        const firstLint = res.lint.issues.find((i) => i.severity === "error");
-        if (firstLint) {
-          console.error(
-            chalk.red(
-              `Lint: ${firstLint.code}: ${firstLint.message}${firstLint.path ? ` (${firstLint.path})` : ""}`
-            )
-          );
-        }
-        const firstTest = res.tests.failures[0];
-        if (firstTest) {
-          console.error(chalk.red(`Test: ${firstTest.testCase.name ?? "case"}: ${firstTest.error}`));
-        }
+        console.error(chalk.red("Refine failed"));
         process.exit(1);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -220,17 +189,18 @@ program
 
 program
   .command("serve")
-  .argument("<path>", "skill directory or directory containing skills")
+  .argument("<paths...>", "skill directories or directories containing skills (multiple paths supported)")
   .option("-p, --port <port>", "port number", "3000")
   .option("-t, --transport <type>", "transport type: sse | stdio", "sse")
   .option("--base-path <path>", "base path for endpoints", "")
   .option("--inspector", "enable inspector UI", false)
   .option("-w, --watch", "watch for file changes and hot-reload", false)
   .option("--timeout <ms>", "skill execution timeout in milliseconds", "30000")
+  .option("--install-deps", "install skill dependencies with npm before serving", false)
   .description("serve skills as MCP tools via SSE or stdio")
   .action(
     async (
-      targetPath: string,
+      paths: string[],
       opts: {
         port?: string;
         transport?: string;
@@ -238,6 +208,7 @@ program
         inspector?: boolean;
         watch?: boolean;
         timeout?: string;
+        installDeps?: boolean;
       }
     ) => {
       try {
@@ -245,13 +216,14 @@ program
         const timeout = opts.timeout ? parseInt(opts.timeout, 10) : 30000;
         const transport = opts.transport === "stdio" ? "stdio" : "sse";
 
-        await serveCommand(targetPath, {
+        await serveCommand(paths, {
           port,
           transport,
           basePath: opts.basePath,
           inspector: opts.inspector,
           watch: opts.watch,
-          timeout
+          timeout,
+          installDeps: opts.installDeps
         });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

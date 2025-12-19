@@ -157,10 +157,44 @@ function createFileSchema(prop: YAMLSchemaProperty): z.ZodTypeAny {
  */
 export function yamlToZodSchema(inputs: unknown): z.ZodObject<z.ZodRawShape> {
   if (!isRecord(inputs) || Object.keys(inputs).length === 0) {
-    // Return empty object schema if no inputs defined
-    return z.object({});
+    // Default to permissive object schema if no inputs defined
+    return z.object({}).passthrough();
   }
 
+  // Handle JSON Schema style inputs: { type: "object", properties: {...}, required: [...] }
+  if (inputs["type"] === "object") {
+    const allowAdditional = inputs["additionalProperties"] !== false;
+
+    if (isRecord(inputs["properties"])) {
+      const properties = inputs["properties"] as Record<string, YAMLSchemaProperty>;
+      const requiredFields = Array.isArray(inputs["required"]) ? (inputs["required"] as string[]) : [];
+
+      const shape: Record<string, z.ZodTypeAny> = {};
+
+      for (const [key, value] of Object.entries(properties)) {
+        if (!isRecord(value)) {
+          shape[key] = z.string().optional();
+          continue;
+        }
+
+        let fieldSchema = convertProperty(value);
+
+        // Mark as optional if not in required array
+        if (!requiredFields.includes(key)) {
+          fieldSchema = fieldSchema.optional();
+        }
+
+        shape[key] = fieldSchema;
+      }
+
+      const objectSchema = z.object(shape);
+      return allowAdditional ? objectSchema.passthrough() : objectSchema;
+    }
+
+    return allowAdditional ? z.object({}).passthrough() : z.object({});
+  }
+
+  // Legacy format: inputs is a flat object where each key is a field
   const shape: Record<string, z.ZodTypeAny> = {};
 
   for (const [key, value] of Object.entries(inputs)) {

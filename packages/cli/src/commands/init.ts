@@ -12,7 +12,6 @@ export async function initSkill(dir: string) {
   await fs.mkdir(root, { recursive: true });
   await fs.mkdir(path.join(root, "scripts"), { recursive: true });
   await fs.mkdir(path.join(root, "resources"), { recursive: true });
-  await fs.mkdir(path.join(root, "tests"), { recursive: true });
 
   const name = path.basename(root);
   const skillMd = `---
@@ -53,6 +52,5 @@ process.stdin.on("end", () => {
 `,
     "utf8"
   );
-  await fs.writeFile(path.join(root, "tests", "golden.json"), "[]\n", "utf8");
   return root;
 }

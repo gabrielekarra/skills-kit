@@ -1,0 +1,2 @@
+network: false
+fs_write: ["output/"]

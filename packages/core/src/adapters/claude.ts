@@ -13,8 +13,6 @@ ${skill.frontmatter.name}/
 ├── policy.yaml       # Security policy
 ├── scripts/          # Executable scripts
 │   └── run.cjs       # Main entrypoint
-├── tests/            # Golden tests
-│   └── golden.json
 └── resources/        # Optional resources
 \`\`\`
 

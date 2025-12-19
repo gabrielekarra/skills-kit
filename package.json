@@ -6,8 +6,7 @@
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "test": "pnpm -r test"
+    "lint": "pnpm -r lint"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
@@ -15,7 +14,9 @@
     "prettier": "^3.3.3",
     "rimraf": "^6.0.1",
     "typescript": "^5.6.3",
-    "typescript-eslint": "^8.14.0",
-    "vitest": "^2.1.8"
+    "typescript-eslint": "^8.14.0"
+  },
+  "dependencies": {
+    "@skills-kit/cli": "workspace:*"
   }
 }

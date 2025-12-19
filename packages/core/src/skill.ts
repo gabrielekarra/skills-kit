@@ -78,7 +78,6 @@ function normalizeFrontmatter(raw: unknown): SkillFrontmatter {
     inputs: raw["inputs"],
     outputs: raw["outputs"],
     policy: raw["policy"],
-    tests: raw["tests"],
     ...extras
   };
 

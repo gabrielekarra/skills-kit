@@ -1,26 +1,50 @@
-import type { LLMProvider, LLMResponse, LLMWrite, ProviderContext, SkillSpec } from "./types.js";
-import type { LintResult, TestResult } from "@skills-kit/core";
+import type { LLMProvider, LLMResponse, LLMWrite, ProviderContext, SkillSpec, ContextAttachment } from "./types.js";
 
 const API_URL = "https://api.anthropic.com/v1/messages";
 
 function systemPromptBase() {
-  return [
-    "You generate repo files for the skills-kit project.",
-    "CRITICAL: You MUST output ONLY raw JSON. No explanations. No markdown. No code blocks. No backticks. Just pure JSON starting with { or [.",
-    "Never use absolute paths or .. segments. Paths are relative to the skill root.",
-    "Only allowed locations: SKILL.md, policy.yaml, scripts/, tests/, resources/.",
-    "The entrypoint MUST be scripts/run.cjs and that file MUST exist.",
-    "Scripts must be deterministic: read JSON from stdin, write JSON to stdout, no randomness/time/network.",
-    "If the request mentions Playwright (or browser automation), scripts/run.cjs must not crash if Playwright is missing: output ok:false with error.code=MISSING_DEP and a clear message.",
-    "tests/golden.json must include a case that passes without Playwright installed (missing dep branch).",
-    "policy.yaml must default to network:false and empty allowlists unless explicitly required by the request."
-  ].join(" ");
+  return `You generate PRODUCTION-READY, COMPLETE code for skills-kit.
+CRITICAL: Output ONLY raw JSON. No explanations. No markdown. No code blocks.
+
+## Skill Structure
+- SKILL.md: YAML frontmatter with ALL fields: name, description, version, authors, allowed_tools: [], entrypoints, inputs, outputs
+- policy.yaml: network: false, fs_write: ["output/"]
+- scripts/run.cjs: COMPLETE CommonJS code (NOT stubs or placeholders)
+- package.json: Dependencies (use pdfkit for PDFs)
+
+## PDF Generation with pdfkit
+When generating PDFs, create COMPLETE styled code:
+- Define COLORS: const COLORS = { primary: '#F26B6B', secondary: '#2BB5A0', text: '#2D3748', gray: '#718096', light: '#F7F7F7' }
+- Header banner: doc.rect(0, 0, doc.page.width, 80).fill(COLORS.primary)
+- Metrics grid: Calculate x/y for 3 columns, 2 rows layout
+- Progress bars: doc.rect() for background and fill
+- Ratings: '★'.repeat(Math.floor(rating)) + '☆'.repeat(5 - Math.floor(rating))
+- Numbered circles: doc.circle(x, y, radius).fill(color)
+- Page footers with doc.text('Page X of Y', 0, height-40, {align:'center', width: doc.page.width})
+
+## Flexible Input Handling - Extract ALL Fields
+The script must handle ANY data structure and display ALL fields:
+
+1. Iterate through ALL keys in the input data
+2. For nested objects, create sections and extract all their fields
+3. For arrays, display all items as lists
+4. Use fallback paths for common naming patterns
+5. NEVER skip any data - every field must appear in the output
+
+Example pattern:
+const getValue = (paths, def) => paths.map(p => p.split('.').reduce((o,k) => o?.[k], data)).find(v => v != null) ?? def;
+Object.entries(data).forEach(([key, value]) => { /* process and display */ });`;
 }
+
+type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "image"; source: { type: "base64"; media_type: string; data: string } }
+  | { type: "document"; source: { type: "base64"; media_type: string; data: string } };
 
 type AnthropicCall = {
   model: string;
   system: string;
-  user: string;
+  user: string | ContentBlock[];
   max_tokens: number;
 };
 
@@ -34,6 +58,14 @@ function isStringArray(value: unknown): value is string[] {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function toKebabCase(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
 }
 
 function defaultPolicy() {
@@ -65,7 +97,7 @@ function normalizeSpec(raw: unknown): SkillSpec {
 
   const spec: SkillSpec = {
     ...raw,
-    name: nameVal.trim(),
+    name: toKebabCase(nameVal),
     description: descVal.trim(),
     version: typeof raw["version"] === "string" ? raw["version"] : "0.1.0",
     authors: isStringArray(raw["authors"]) ? raw["authors"] : ["skills-kit"],
@@ -77,8 +109,7 @@ function normalizeSpec(raw: unknown): SkillSpec {
     runtime_dependencies: isStringArray(raw["runtime_dependencies"])
       ? raw["runtime_dependencies"]
       : undefined,
-    policy: p,
-    tests: isRecord(raw["tests"]) ? (raw["tests"] as SkillSpec["tests"]) : undefined
+    policy: p
   };
 
   if (!spec.entrypoints?.includes("scripts/run.cjs")) {
@@ -156,6 +187,50 @@ function parseWritesPayload(raw: unknown): LLMWrite[] {
   throw new Error("Expected JSON writes: {writes:[{path,content}]}");
 }
 
+function buildUserContent(user: string | ContentBlock[]): string | ContentBlock[] {
+  return user;
+}
+
+function attachmentsToContentBlocks(attachments: ContextAttachment[]): ContentBlock[] {
+  return attachments.map((att) => {
+    if (att.mimeType.startsWith("image/")) {
+      return {
+        type: "image" as const,
+        source: {
+          type: "base64" as const,
+          media_type: att.mimeType,
+          data: att.data
+        }
+      };
+    }
+    // PDF and other documents
+    return {
+      type: "document" as const,
+      source: {
+        type: "base64" as const,
+        media_type: att.mimeType,
+        data: att.data
+      }
+    };
+  });
+}
+
+function buildMultimodalContent(text: string, attachments?: ContextAttachment[]): string | ContentBlock[] {
+  if (!attachments || attachments.length === 0) {
+    return text;
+  }
+  const blocks: ContentBlock[] = attachmentsToContentBlocks(attachments);
+  blocks.push({ type: "text", text });
+  return blocks;
+}
+
+function appendUserText(user: string | ContentBlock[], extraText: string): string | ContentBlock[] {
+  if (typeof user === "string") {
+    return `${user}\n\n${extraText}`;
+  }
+  return [...user, { type: "text", text: extraText }];
+}
+
 async function callAnthropicText(call: AnthropicCall): Promise<string> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("ANTHROPIC_API_KEY not set");
@@ -172,7 +247,7 @@ async function callAnthropicText(call: AnthropicCall): Promise<string> {
         model: call.model,
         max_tokens: call.max_tokens,
         system: call.system,
-        messages: [{ role: "user", content: call.user }]
+        messages: [{ role: "user", content: buildUserContent(call.user) }]
       })
     });
   } catch (err) {
@@ -197,7 +272,10 @@ async function callJsonWithRetry(call: AnthropicCall): Promise<unknown> {
   const strict: AnthropicCall = {
     ...call,
     system: "You are a JSON-only generator. Output ONLY raw JSON with no additional text.",
-    user: `${call.user}\n\nIMPORTANT: Return ONLY the JSON object or array. Start your response with { or [. No other text before or after.`,
+    user: appendUserText(
+      call.user,
+      "IMPORTANT: Return ONLY the JSON object or array. Start your response with { or [. No other text before or after."
+    ),
     max_tokens: call.max_tokens
   };
   const secondText = await callAnthropicText(strict);
@@ -208,7 +286,7 @@ async function callJsonWithRetry(call: AnthropicCall): Promise<unknown> {
   const veryStrict: AnthropicCall = {
     ...call,
     system: "Output raw JSON only. Nothing else.",
-    user: `${call.user}\n\nReturn JSON starting with {`,
+    user: appendUserText(call.user, "Return JSON starting with {"),
     max_tokens: call.max_tokens
   };
   const thirdText = await callAnthropicText(veryStrict);
@@ -223,27 +301,27 @@ export class AnthropicProvider implements LLMProvider {
 
   async generateSpec(nlPrompt: string, context: ProviderContext): Promise<SkillSpec> {
     const system = systemPromptBase();
-    const user = [
-      `Natural language request: ${JSON.stringify(nlPrompt)}`,
+    const attachmentNote = context.attachments && context.attachments.length > 0
+      ? `\n\nIMPORTANT: Reference files (${context.attachments.map(a => a.filename).join(", ")}) are provided as visual context and are copied into resources/ (${context.attachments.map(a => `resources/${a.filename}`).join(", ")}). Analyze them carefully to understand the exact layout, structure, and design to replicate. If a PDF template is provided, use Playwright with HTML/CSS to match the styling.`
+      : "";
+    const userText = [
+      `Natural language request: ${JSON.stringify(nlPrompt)}${attachmentNote}`,
       "",
-      "Return a JSON skill spec with keys:",
+      "Return a JSON skill spec with ALL these required keys:",
       "- name (kebab-case string)",
       "- description (string)",
-      "- version (semver string, default 0.1.0)",
-      "- authors (string[])",
-      "- allowed_tools (string[])",
-      "- entrypoints (string[]; MUST include scripts/run.cjs)",
-      "- inputs (JSON schema object)",
-      "- outputs (JSON schema object)",
-      "- capabilities (optional string[])",
-      "- runtime_dependencies (optional string[]; include playwright if requested)",
-      "- policy {network:boolean, fs_read:string[], fs_write:string[], exec_allowlist:string[], domains_allowlist:string[]}",
-      "- tests {golden:[{name?:string,input:any,expected?:any,assert?:{type,path,value}}]}",
+      "- version (semver string, default 1.0.0)",
+      "- authors: [\"skills-kit\"]",
+      "- allowed_tools: [] (empty array unless specific tools needed)",
+      "- entrypoints: [\"scripts/run.cjs\"]",
+      "- inputs: { type: \"object\", additionalProperties: true } (flexible, no required fields)",
+      "- outputs: { type: \"object\", properties: { ok: { type: \"boolean\" } } }",
+      "- runtime_dependencies (optional string[]; use pdfkit for PDF generation)",
+      "- policy: { network: false, fs_read: [], fs_write: [\"output/\"], exec_allowlist: [], domains_allowlist: [] }",
       "",
       "Rules:",
-      "- policy.network must be false unless explicitly required.",
-      "- If Playwright is requested, include tests.golden case for missing dependency output:",
-      '  expected.ok=false and expected.error.code="MISSING_DEP".',
+      "- For PDF generation, prefer pdfkit over Playwright (simpler, no browser).",
+      "- If skill generates files, set policy.fs_write to [\"output/\"].",
       "",
       "IMPORTANT: Start your response with { and output only the JSON object. No other text."
     ].join("\n");
@@ -251,7 +329,7 @@ export class AnthropicProvider implements LLMProvider {
     const raw = await callJsonWithRetry({
       model: context.model ?? "claude-sonnet-4-20250514",
       system,
-      user,
+      user: buildMultimodalContent(userText, context.attachments),
       max_tokens: 1400
     });
     return normalizeSpec(raw);
@@ -260,74 +338,62 @@ export class AnthropicProvider implements LLMProvider {
   async generateFilesFromSpec(spec: SkillSpec, context: ProviderContext): Promise<LLMResponse> {
     const system = systemPromptBase();
     const tree = context.existingFiles ?? {};
-    const user = [
+    const hasPdfTemplate = context.attachments?.some(a => a.mimeType === 'application/pdf');
+
+    const attachmentNote = context.attachments && context.attachments.length > 0
+      ? `\n\nIMPORTANT: A PDF template is provided. Analyze it carefully and replicate:
+- Exact color scheme (coral #F26B6B, teal #2BB5A0, etc.)
+- Layout structure (header banners, content sections, footers)
+- Typography (font sizes, weights, alignment)
+- Visual elements (colored rectangles, progress bars, rating stars, numbered circles)
+- Data sections (metrics grids, comparison bars, review quotes, recommendations)`
+      : "";
+
+    const pdfInstructions = hasPdfTemplate ? `
+PDF CODE REQUIREMENTS:
+1. Analyze the template to extract colors, layout, and structure
+2. Define COLORS object matching the template's color scheme
+3. Iterate through ALL input data keys and create sections for each
+4. For objects: create titled sections with their fields
+5. For arrays: create lists with bullets or numbered items
+6. For numeric data: consider grids or visual representations
+7. Use pdfkit methods: doc.rect(), doc.circle(), doc.text(), doc.fontSize(), doc.fillColor()
+8. Handle multi-page with doc.addPage() if content is long
+9. Add page footers
+10. CRITICAL: Display EVERY field from the input - nothing should be omitted
+11. Output to 'output/' directory
+` : "";
+
+    const userText = [
       "Generate skill files from this spec JSON:",
       JSON.stringify(spec, null, 2),
       "",
-      "Current workspace tree (path -> content):",
-      JSON.stringify(tree, null, 2),
+      "Required files:",
+      "1. SKILL.md with ALL frontmatter fields (name, description, version, authors, allowed_tools: [], entrypoints, inputs, outputs)",
+      "2. policy.yaml (network: false, fs_write: [\"output/\"])",
+      "3. scripts/run.cjs - COMPLETE, PRODUCTION-READY code",
+      "4. package.json with dependencies",
       "",
-      "Write ONLY these required files (and optionally resources/*):",
-      "- SKILL.md (YAML frontmatter + Markdown body)",
-      "- policy.yaml",
-      "- scripts/run.cjs",
-      "- tests/golden.json",
+      "scripts/run.cjs MUST:",
+      "- require('fs'), require('path') at top, plus any needed dependencies",
+      "- Iterate through ALL keys in the input data",
+      "- Create sections/displays for EVERY piece of data",
+      "- For objects: extract and display all their fields",
+      "- For arrays: display all items",
+      "- For numbers: show with appropriate formatting",
+      "- NOTHING should be skipped - display ALL input data",
+      pdfInstructions,
+      attachmentNote,
       "",
-      "Constraints:",
-      "- Entry point in SKILL.md must reference scripts/run.cjs.",
-      "- scripts/run.cjs must be CommonJS, deterministic, stdin JSON -> stdout JSON.",
-      "- If Playwright is required, implement missing-dependency branch with ok:false and error.code=MISSING_DEP, without crashing.",
-      "- tests/golden.json must include a portable passing test for missing-dependency branch (no Playwright installed).",
-      "",
-      "IMPORTANT: Start your response with { and return ONLY the JSON object with writes array. No other text."
+      "CRITICAL: Generate COMPLETE implementation that displays ALL input fields.",
+      "Return {writes:[{path,content}]}"
     ].join("\n");
 
     const raw = await callJsonWithRetry({
       model: context.model ?? "claude-sonnet-4-20250514",
       system,
-      user,
-      max_tokens: 2600
-    });
-    const writes = parseWritesPayload(raw);
-    return { writes };
-  }
-
-  async repairFromErrors(
-    nlPrompt: string,
-    context: ProviderContext,
-    lintOutput: LintResult,
-    testOutput: TestResult
-  ): Promise<LLMResponse> {
-    const system = systemPromptBase();
-    const tree = context.existingFiles ?? {};
-    const lintLines = lintOutput.issues
-      .map((i) => `${i.severity.toUpperCase()} ${i.code}: ${i.message}${i.path ? ` (${i.path})` : ""}`)
-      .join("\n");
-    const testLines = testOutput.ok
-      ? "OK"
-      : testOutput.failures.map((f) => `FAIL ${f.testCase.name ?? "case"}: ${f.error}`).join("\n");
-
-    const user = [
-      `Original request: ${JSON.stringify(nlPrompt)}`,
-      "",
-      "Current workspace tree (path -> content):",
-      JSON.stringify(tree, null, 2),
-      "",
-      "Lint output:",
-      lintLines || "OK",
-      "",
-      "Test output:",
-      testLines,
-      "",
-      "IMPORTANT: Return ONLY the JSON object starting with {",
-      "Format: {\"writes\":[{\"path\":\"...\",\"content\":\"...\"}]}"
-    ].join("\n");
-
-    const raw = await callJsonWithRetry({
-      model: context.model ?? "claude-sonnet-4-20250514",
-      system,
-      user,
-      max_tokens: 2600
+      user: buildMultimodalContent(userText, context.attachments),
+      max_tokens: 16000
     });
     const writes = parseWritesPayload(raw);
     return { writes };

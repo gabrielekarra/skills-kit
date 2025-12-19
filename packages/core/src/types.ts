@@ -10,7 +10,6 @@ export type SkillFrontmatter = {
   capabilities?: string[];
   targets?: string[];
   policy?: unknown;
-  tests?: unknown;
   [key: string]: unknown;
 };
 
@@ -40,27 +39,4 @@ export type LintIssue = {
 export type LintResult = {
   ok: boolean;
   issues: LintIssue[];
-};
-
-export type AssertRule =
-  | { type: "contains"; path: string; value: unknown }
-  | { type: "matches"; path: string; value: string };
-
-export type GoldenTestCase = {
-  name?: string;
-  input: unknown;
-  expected?: unknown;
-  assert?: AssertRule;
-};
-
-export type TestFailure = {
-  testCase: GoldenTestCase;
-  error: string;
-};
-
-export type TestResult = {
-  ok: boolean;
-  passed: number;
-  failed: number;
-  failures: TestFailure[];
 };

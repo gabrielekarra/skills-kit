@@ -1,5 +1,4 @@
 import fs from "node:fs/promises";
-import path from "node:path";
 import { parseSkill } from "./skill.js";
 import { readPolicy } from "./policy.js";
 import { safeResolve } from "./utils/pathSafe.js";
@@ -134,29 +133,6 @@ export async function lintSkill(skillDir: string): Promise<LintResult> {
       path: "policy.yaml",
       severity: "warning"
     });
-  }
-
-  const goldenPath = safeResolve(skillDir, path.join("tests", "golden.json"));
-  if (await fileExists(goldenPath)) {
-    try {
-      const goldenText = await fs.readFile(goldenPath, "utf8");
-      const golden: unknown = JSON.parse(goldenText) as unknown;
-      if (!Array.isArray(golden)) {
-        issues.push({
-          code: "GOLDEN_FORMAT",
-          message: "tests/golden.json must be an array",
-          path: "tests/golden.json",
-          severity: "error"
-        });
-      }
-    } catch (err) {
-      issues.push({
-        code: "GOLDEN_PARSE",
-        message: err instanceof Error ? err.message : "Invalid golden.json",
-        path: "tests/golden.json",
-        severity: "error"
-      });
-    }
   }
 
   const ok = issues.every((i) => i.severity !== "error");

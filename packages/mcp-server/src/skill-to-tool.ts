@@ -3,6 +3,22 @@ import { safeResolve } from "@skills-kit/core";
 import type { LoadedSkill } from "./types.js";
 import { SkillExecutionError } from "./types.js";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function getInputSchema(loadedSkill: LoadedSkill): Record<string, unknown> & { type: "object" } {
+  const raw = loadedSkill.skill.frontmatter.inputs;
+  const schema = isRecord(raw) ? { ...raw } : {};
+  if (schema["type"] !== "object") {
+    schema["type"] = "object";
+  }
+  if (!Object.prototype.hasOwnProperty.call(schema, "additionalProperties")) {
+    schema["additionalProperties"] = true;
+  }
+  return schema as Record<string, unknown> & { type: "object" };
+}
+
 /**
  * Execute a skill with given input
  *
@@ -25,6 +41,10 @@ export async function executeSkill(
 
   const entryAbs = safeResolve(skill.dir, entrypoint);
   const inputJson = JSON.stringify(input ?? {});
+
+  console.error(`[executeSkill] Running ${skill.frontmatter.name}`);
+  console.error(`[executeSkill] CWD: ${skill.dir}`);
+  console.error(`[executeSkill] Input JSON length: ${inputJson.length} bytes`);
 
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [entryAbs], {
@@ -122,6 +142,7 @@ export async function executeSkill(
  */
 export function skillToToolDefinition(loadedSkill: LoadedSkill, timeout: number = 30000) {
   const { skill, policy, schema } = loadedSkill;
+  const inputSchema = getInputSchema(loadedSkill);
 
   // Build description with policy information
   let description = skill.frontmatter.description;
@@ -137,9 +158,13 @@ export function skillToToolDefinition(loadedSkill: LoadedSkill, timeout: number 
   return {
     name: skill.frontmatter.name,
     description,
+    inputSchema,
     parameters: schema,
     execute: async (input: unknown) => {
       try {
+        // Log incoming input for debugging
+        console.error(`[skill-to-tool] Executing ${skill.frontmatter.name} with input:`, JSON.stringify(input, null, 2).slice(0, 500));
+
         // Validate input against schema
         const validated = schema.parse(input);
 

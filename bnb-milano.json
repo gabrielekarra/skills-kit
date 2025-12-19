@@ -1,0 +1,45 @@
+{
+  "property": {
+    "name": "Luxury Loft Navigli",
+    "location": "Milano, Lombardia",
+    "type": "Appartamento",
+    "bedrooms": 2,
+    "maxGuests": 4
+  },
+  "period": {
+    "label": "Q4 2024",
+    "startDate": "2024-10-01",
+    "endDate": "2024-12-31"
+  },
+  "metrics": {
+    "totalRevenue": 12450,
+    "occupancyRate": 78.5,
+    "averageRating": 4.8,
+    "totalReviews": 16,
+    "totalBookings": 18,
+    "averageNightlyRate": 145,
+    "totalNights": 72
+  },
+  "comparison": {
+    "revenueChange": 15.2,
+    "occupancyChange": 8.3,
+    "bookingsChange": 12.5
+  },
+  "reviews": {
+    "highlights": [
+      "Posizione perfetta per esplorare i Navigli",
+      "Appartamento pulitissimo e moderno",
+      "Host molto disponibile e comunicativo"
+    ],
+    "areasToImprove": [
+      "Aggiungere più asciugamani",
+      "Migliorare l'insonorizzazione"
+    ]
+  },
+  "recommendations": [
+    "Aumenta il prezzo del 10% per i weekend di dicembre",
+    "Offri late checkout per soggiorni 3+ notti",
+    "Aggiungi foto professionali vista notturna Navigli",
+    "Rispondi ai feedback sull'insonorizzazione"
+  ]
+}

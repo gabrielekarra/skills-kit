@@ -1,0 +1,45 @@
+{
+  "property": {
+    "name": "Attico Trastevere",
+    "location": "Roma, Lazio",
+    "type": "Appartamento",
+    "bedrooms": 1,
+    "maxGuests": 2
+  },
+  "period": {
+    "label": "Q4 2024",
+    "startDate": "2024-10-01",
+    "endDate": "2024-12-31"
+  },
+  "metrics": {
+    "totalRevenue": 9800,
+    "occupancyRate": 85.2,
+    "averageRating": 4.7,
+    "totalReviews": 23,
+    "totalBookings": 28,
+    "averageNightlyRate": 125,
+    "totalNights": 78
+  },
+  "comparison": {
+    "revenueChange": 22.5,
+    "occupancyChange": 12.8,
+    "bookingsChange": 18.3
+  },
+  "reviews": {
+    "highlights": [
+      "Posizione imbattibile nel cuore di Trastevere",
+      "Terrazza con vista sui tetti di Roma",
+      "Perfetto per coppie romantiche"
+    ],
+    "areasToImprove": [
+      "Scale ripide per raggiungere l'attico",
+      "Rumore dalla piazza nei weekend"
+    ]
+  },
+  "recommendations": [
+    "Massimizza i prezzi per Capodanno e ponti festivi",
+    "Aggiungi kit romantico opzionale (vino, cioccolatini)",
+    "Considera soggiorno minimo 2 notti nei weekend",
+    "Installa doppi vetri per ridurre rumore"
+  ]
+}

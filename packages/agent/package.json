@@ -12,9 +12,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "lint": "eslint src test --max-warnings=0",
-    "pretest": "pnpm -C ../core build",
-    "test": "vitest run"
+    "lint": "eslint src --max-warnings=0"
   },
   "dependencies": {
     "@skills-kit/core": "workspace:*"

@@ -6,12 +6,19 @@ export type LLMResponse = {
   message?: string;
 };
 
+export type ContextAttachment = {
+  filename: string;
+  mimeType: string;
+  data: string; // base64
+};
+
 export type ProviderContext = {
   model?: string;
   existingFiles?: Record<string, string>;
+  attachments?: ContextAttachment[];
 };
 
-import type { GoldenTestCase, LintResult, Policy, TestResult } from "@skills-kit/core";
+import type { Policy } from "@skills-kit/core";
 
 export type SkillSpec = {
   name: string;
@@ -25,9 +32,6 @@ export type SkillSpec = {
   capabilities?: string[];
   runtime_dependencies?: string[];
   policy: Policy;
-  tests?: {
-    golden?: GoldenTestCase[];
-  };
   [key: string]: unknown;
 };
 
@@ -38,10 +42,4 @@ export interface LLMProvider {
 
   generateSpec?: (nlPrompt: string, context: ProviderContext) => Promise<SkillSpec>;
   generateFilesFromSpec?: (spec: SkillSpec, context: ProviderContext) => Promise<LLMResponse>;
-  repairFromErrors?: (
-    nlPrompt: string,
-    context: ProviderContext,
-    lintOutput: LintResult,
-    testOutput: TestResult
-  ) => Promise<LLMResponse>;
 }

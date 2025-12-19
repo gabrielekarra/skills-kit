@@ -14,9 +14,25 @@
 
 <br>
 
-**Skills Kit** is an open-source framework for building portable AI capabilities. Write your logic once, then run it with Claude, GPT, Gemini, or any [MCP](https://modelcontextprotocol.io)-compatible agent.
+**Skills Kit** is an open-source framework for building portable AI capabilities. Build a skill once, expose it through an MCP server, then use it from any provider (Claude, OpenAI, Gemini, local models, and more).
 
 **No vendor lock-in. No rewrites. Just skills that work everywhere.**
+
+<br>
+
+## Watch the Flow
+
+<video src=".github/demo.mp4" controls muted playsinline width="100%"></video>
+
+Prefer a direct link? [Download the demo](.github/demo.mp4).
+
+<br>
+
+## The Portable Skills Pipeline
+
+1. **Create a skill** - define inputs/outputs and implement your logic.
+2. **Expose it via MCP** - run the built-in MCP server.
+3. **Use it with any provider** - OpenAI, Claude, Gemini, or any MCP client.
 
 <br>
 
@@ -25,7 +41,7 @@
 | Problem | Solution |
 |---------|----------|
 | AI integrations break when you switch models | Skills are model-agnostic via MCP |
-| Custom tools are hard to test and validate | Built-in golden tests + linting |
+| Custom tools are hard to validate | Built-in linting |
 | Sharing AI capabilities requires boilerplate | Bundle and distribute via npm |
 | Security is an afterthought | Declarative permission policies |
 
@@ -37,7 +53,6 @@
 npm install -g @skills-kit/cli
 
 skills-kit init my-skill      # Create a skill
-skills-kit test my-skill      # Run tests
 skills-kit serve my-skill     # Start MCP server
 ```
 
@@ -52,14 +67,15 @@ my-skill/
 ├── SKILL.md          # Schema: inputs, outputs, description
 ├── policy.yaml       # Permissions: network, filesystem, exec
 ├── scripts/run.cjs   # Your code (JSON in → JSON out)
-└── tests/golden.json # Test cases
 ```
 
 Skills are simple: receive JSON via stdin, return JSON via stdout. Use any language.
 
 <br>
 
-## Connect to Any AI
+## Use It from Any Provider
+
+Once the MCP server is running, any MCP client can call your skill. OpenAI example below.
 
 <details>
 <summary><b>Claude Desktop</b></summary>
@@ -116,7 +132,6 @@ skills-kit serve ./my-skills --port 3000
 | `skills-kit init <path>` | Create a new skill from template |
 | `skills-kit create "desc"` | Generate a skill with AI |
 | `skills-kit lint <path>` | Validate skill structure |
-| `skills-kit test <path>` | Run golden tests |
 | `skills-kit serve <path>` | Start MCP server |
 | `skills-kit bundle <path>` | Package for distribution |
 
@@ -126,7 +141,6 @@ skills-kit serve ./my-skills --port 3000
 
 - **MCP Native** — First-class support for the Model Context Protocol
 - **Language Agnostic** — Write skills in JavaScript, Python, Bash, or any language
-- **Golden Tests** — Snapshot testing to catch regressions
 - **Security Policies** — Declare what your skill can access
 - **AI Generation** — Describe what you want, get a working skill
 - **Bundling** — Package and share via npm or private registries
